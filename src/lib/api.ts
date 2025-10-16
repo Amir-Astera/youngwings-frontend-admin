@@ -97,7 +97,19 @@ export const api = new ApiClient(API_BASE_URL);
 // Auth API
 export const authApi = {
   login: async (credentials: { email: string; password: string }) => {
-    return api.post<{ token: string; user: any }>(API_ENDPOINTS.AUTH.LOGIN, credentials);
+    const basicToken = btoa(`${credentials.email}:${credentials.password}`);
+    const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.AUTH.LOGIN}`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Basic ${basicToken}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Auth Error: ${response.statusText}`);
+    }
+
+    return response.json() as Promise<{ token: string; user: any }>;
   },
   
   logout: () => {
