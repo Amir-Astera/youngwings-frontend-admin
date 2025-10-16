@@ -4,13 +4,15 @@
 /**
  * Базовый URL вашего Kotlin API
  * 
- * Development: http://localhost:8080/api
- * Production: https://api.youngwings.kz/api
+ * Development: http://localhost:8080
+ * Production: https://api.youngwings.kz
  * 
  * Установите через .env файл:
- * VITE_API_BASE_URL=http://localhost:8080/api
+ * VITE_API_BASE_URL=http://localhost:8080
  */
-export const API_BASE_URL = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_BASE_URL) || 'http://localhost:8080/api';
+export const API_BASE_URL =
+  (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_BASE_URL) ||
+  'http://localhost:8080';
 
 /**
  * Конфигурация endpoints
@@ -19,40 +21,68 @@ export const API_BASE_URL = (typeof import.meta !== 'undefined' && import.meta.e
 export const API_ENDPOINTS = {
   // Авторизация
   AUTH: {
-    LOGIN: '/auth/login',      // POST - вход в систему
+    LOGIN: '/auth',            // POST - вход в систему
     LOGOUT: '/auth/logout',    // POST - выход из системы
     ME: '/auth/me',            // GET - получить текущего пользователя
   },
   
   // Посты
   POSTS: {
-    LIST: '/posts',                           // GET - список постов
-    CREATE: '/posts',                         // POST - создать пост
-    GET: (id: string) => `/posts/${id}`,      // GET - получить пост
-    UPDATE: (id: string) => `/posts/${id}`,   // PUT - обновить пост
-    DELETE: (id: string) => `/posts/${id}`,   // DELETE - удалить пост
+    LIST: '/api/posts',                            // GET - список постов
+    CREATE: '/api/posts',                          // POST - создать пост
+    GET: (id: string) => `/api/posts/${id}`,       // GET - получить пост
+    UPDATE: (id: string) => `/api/posts/${id}`,    // PUT - обновить пост
+    DELETE: (id: string) => `/api/posts/${id}`,    // DELETE - удалить пост
   },
   
   // События
   EVENTS: {
-    LIST: '/events',                              // GET - список событий
-    CREATE: '/events',                            // POST - создать событие
-    GET: (id: string) => `/events/${id}`,         // GET - получить событие
-    UPDATE: (id: string) => `/events/${id}`,      // PUT - обновить событие
-    DELETE: (id: string) => `/events/${id}`,      // DELETE - удалить событие
+    LIST: '/api/events',                               // GET - список событий
+    CREATE: '/api/events',                             // POST - создать событие
+    GET: (id: string) => `/api/events/${id}`,          // GET - получить событие
+    UPDATE: (id: string) => `/api/events/${id}`,       // PUT - обновить событие
+    DELETE: (id: string) => `/api/events/${id}`,       // DELETE - удалить событие
   },
   
   // Переводчики
   TRANSLATORS: {
-    LIST: '/translators',                                 // GET - список переводчиков
-    CREATE: '/translators',                               // POST - создать переводчика
-    GET: (id: string) => `/translators/${id}`,            // GET - получить переводчика
-    UPDATE: (id: string) => `/translators/${id}`,         // PUT - обновить переводчика
-    DELETE: (id: string) => `/translators/${id}`,         // DELETE - удалить переводчика
+    LIST: '/api/translators',                                   // GET - список переводчиков
+    CREATE: '/api/translators',                                 // POST - создать переводчика
+    GET: (id: string) => `/api/translators/${id}`,              // GET - получить переводчика
+    UPDATE: (id: string) => `/api/translators/${id}`,           // PUT - обновить переводчика
+    DELETE: (id: string) => `/api/translators/${id}`,           // DELETE - удалить переводчика
   },
-  
+
+  // Комментарии
+  COMMENTS: {
+    LIST: '/api/comments',                                     // GET - список комментариев
+    GET: (id: string) => `/api/comments/${id}`,                // GET - получить комментарий
+    APPROVE: (id: string) => `/api/comments/${id}/approve`,    // PUT - одобрить комментарий
+    REJECT: (id: string) => `/api/comments/${id}/reject`,      // PUT - отклонить комментарий
+    DELETE: (id: string) => `/api/comments/${id}`,             // DELETE - удалить комментарий
+  },
+
+  // Настройки
+  SETTINGS: {
+    REGIONS: {
+      LIST: '/api/settings/regions',
+      CREATE: '/api/settings/regions',
+      DELETE: (region: string) => `/api/settings/regions/${encodeURIComponent(region)}`,
+    },
+    SPHERES: {
+      LIST: '/api/settings/spheres',
+      CREATE: '/api/settings/spheres',
+      DELETE: (sphere: string) => `/api/settings/spheres/${encodeURIComponent(sphere)}`,
+    },
+    TOPICS: {
+      LIST: '/api/settings/topics',
+      CREATE: '/api/settings/topics',
+      DELETE: (topic: string) => `/api/settings/topics/${encodeURIComponent(topic)}`,
+    },
+  },
+
   // Загрузка файлов
-  UPLOAD: '/upload',  // POST - загрузить изображение (multipart/form-data)
+  UPLOAD: '/api/upload',  // POST - загрузить изображение (multipart/form-data)
 };
 
 /**
