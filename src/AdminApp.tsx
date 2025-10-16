@@ -22,7 +22,8 @@ function LoginPage({ onLogin }: { onLogin: () => void }) {
 
     try {
       const response = await authApi.login({ email, password });
-      localStorage.setItem("admin_token", response.token);
+      localStorage.setItem("admin_token", response.access_token);
+      localStorage.setItem("admin_token_type", response.token_type);
       onLogin();
     } catch (err) {
       setError("Неверный email или пароль");
