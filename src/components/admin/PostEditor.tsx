@@ -23,7 +23,7 @@ import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Textarea } from "../ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
-import { Post, postsApi, api } from "../../lib/api";
+import { Post, PostRequest, postsApi, api } from "../../lib/api";
 import { toast } from "sonner";
 
 interface PostEditorProps {
@@ -51,9 +51,12 @@ export function PostEditor({ postId, onSave, onCancel }: PostEditorProps) {
   const [post, setPost] = useState<Partial<Post>>({
     title: "",
     excerpt: "",
+    description: "",
     content: "",
     section: sections[0],
+    chapter: sections[0],
     category: "",
+    topic: "",
     author: "YoungWings",
     tags: [],
     status: "draft",
@@ -85,12 +88,30 @@ export function PostEditor({ postId, onSave, onCancel }: PostEditorProps) {
   const loadPost = async () => {
     try {
       const data = await postsApi.getById(postId!);
-      setPost(data);
+      setPost({
+        ...data,
+        description: data.description ?? data.excerpt,
+        section: data.section ?? data.chapter,
+        chapter: data.chapter,
+        category: data.category ?? data.topic,
+        topic: data.topic,
+      });
       if (data.imageUrl) {
         setImagePreview(data.imageUrl);
+      } else if (data.thumbnail) {
+        setImagePreview(data.thumbnail);
       }
-      if (editor && data.content) {
-        editor.commands.setContent(data.content);
+      if (editor) {
+        if (data.content) {
+          try {
+            const parsed = JSON.parse(data.content);
+            editor.commands.setContent(parsed);
+          } catch (error) {
+            editor.commands.setContent(data.content);
+          }
+        } else {
+          editor.commands.clearContent();
+        }
       }
     } catch (error) {
       toast.error("Ошибка загрузки поста");
@@ -110,45 +131,55 @@ export function PostEditor({ postId, onSave, onCancel }: PostEditorProps) {
   };
 
   const handleSave = async (status: "draft" | "published") => {
-    if (!post.title || !post.excerpt || !post.category) {
+    if (!post.title || !post.excerpt) {
       toast.error("Заполните обязательные поля");
+      return;
+    }
+
+    const chapter = (post.section ?? post.chapter ?? "").trim();
+    if (!chapter) {
+      toast.error("Выберите раздел поста");
       return;
     }
 
     setIsLoading(true);
     try {
-      let imageUrl = post.imageUrl;
-      
+      let thumbnail = post.imageUrl ?? post.thumbnail ?? null;
+
       if (imageFile) {
         const uploadResult = await api.uploadImage(imageFile);
-        imageUrl = uploadResult.url;
+        thumbnail = uploadResult.url;
       }
 
-      // Serialize TipTap content to JSON string
       const contentJSON = editor?.getJSON();
-      const contentString = contentJSON ? JSON.stringify(contentJSON) : "";
+      const contentString = contentJSON
+        ? JSON.stringify(contentJSON)
+        : typeof post.content === "string"
+          ? post.content
+          : "";
 
-      const postData = {
-        ...post,
-        imageUrl,
+      const postPayload: PostRequest = {
+        title: post.title,
+        description: post.description ?? post.excerpt ?? "",
+        chapter,
+        topic: post.topic ?? post.category ?? "",
+        author: post.author ?? "YoungWings",
         content: contentString,
-        status,
-        publishedAt: status === "published" ? new Date().toISOString() : post.publishedAt,
-        readTime: post.readTime || "5 мин", // Default read time
+        thumbnail,
       };
 
       if (postId) {
-        await postsApi.update(postId, postData);
+        await postsApi.update(postId, postPayload);
         toast.success("Пост обновлен");
       } else {
-        await postsApi.create(postData);
+        await postsApi.create(postPayload);
         if (status === "published") {
           toast.success("Пост опубликован");
         } else {
           toast.success("Пост сохранен как черновик");
         }
       }
-      
+
       onSave?.();
     } catch (error) {
       toast.error("Ошибка сохранения поста");
@@ -212,7 +243,13 @@ export function PostEditor({ postId, onSave, onCancel }: PostEditorProps) {
                 <Textarea
                   id="excerpt"
                   value={post.excerpt}
-                  onChange={(e) => setPost({ ...post, excerpt: e.target.value })}
+                  onChange={(e) =>
+                    setPost({
+                      ...post,
+                      excerpt: e.target.value,
+                      description: e.target.value,
+                    })
+                  }
                   placeholder="Краткое описание для карточки поста..."
                   className="mt-2 h-20"
                 />
@@ -328,7 +365,13 @@ export function PostEditor({ postId, onSave, onCancel }: PostEditorProps) {
                 <Label htmlFor="section">Раздел *</Label>
                 <Select
                   value={post.section}
-                  onValueChange={(value) => setPost({ ...post, section: value })}
+                  onValueChange={(value) =>
+                    setPost({
+                      ...post,
+                      section: value,
+                      chapter: value,
+                    })
+                  }
                 >
                   <SelectTrigger className="mt-2">
                     <SelectValue />
@@ -341,17 +384,6 @@ export function PostEditor({ postId, onSave, onCancel }: PostEditorProps) {
                     ))}
                   </SelectContent>
                 </Select>
-              </div>
-
-              <div>
-                <Label htmlFor="category">Категория *</Label>
-                <Input
-                  id="category"
-                  value={post.category}
-                  onChange={(e) => setPost({ ...post, category: e.target.value })}
-                  placeholder="Например: Технологии"
-                  className="mt-2"
-                />
               </div>
 
               <div>
@@ -377,16 +409,6 @@ export function PostEditor({ postId, onSave, onCancel }: PostEditorProps) {
                 />
               </div>
 
-              <div>
-                <Label htmlFor="readTime">Время чтения</Label>
-                <Input
-                  id="readTime"
-                  value={post.readTime || ""}
-                  onChange={(e) => setPost({ ...post, readTime: e.target.value })}
-                  placeholder="5 мин"
-                  className="mt-2"
-                />
-              </div>
             </div>
 
             {/* Actions */}
@@ -425,7 +447,7 @@ export function PostEditor({ postId, onSave, onCancel }: PostEditorProps) {
                 <div className="flex-1 min-w-0">
                   <div className="text-sm text-gray-900 mb-0.5">{post.author}</div>
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <span>{post.category}</span>
+                    <span>{post.topic || post.category}</span>
                     <span>·</span>
                     <span>Только что</span>
                   </div>
