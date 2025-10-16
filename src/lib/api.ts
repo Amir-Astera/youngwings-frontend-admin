@@ -1,5 +1,5 @@
 // API Configuration
-import { API_BASE_URL } from './config';
+import { API_BASE_URL, API_ENDPOINTS } from './config';
 
 // API Client
 class ApiClient {
@@ -76,7 +76,7 @@ class ApiClient {
     formData.append('file', file);
     
     const token = localStorage.getItem('admin_token');
-    const response = await fetch(`${this.baseUrl}/upload`, {
+    const response = await fetch(`${this.baseUrl}${API_ENDPOINTS.UPLOAD}`, {
       method: 'POST',
       headers: {
         ...(token && { 'Authorization': `Bearer ${token}` }),
@@ -97,7 +97,7 @@ export const api = new ApiClient(API_BASE_URL);
 // Auth API
 export const authApi = {
   login: async (credentials: { email: string; password: string }) => {
-    return api.post<{ token: string; user: any }>('/auth/login', credentials);
+    return api.post<{ token: string; user: any }>(API_ENDPOINTS.AUTH.LOGIN, credentials);
   },
   
   logout: () => {
@@ -119,131 +119,133 @@ export const postsApi = {
     if (params?.limit) queryParams.append('limit', String(params.limit));
     
     const query = queryParams.toString();
-    return api.get<{ posts: Post[]; total: number }>(`/posts${query ? `?${query}` : ''}`);
+    return api.get<{ posts: Post[]; total: number }>(
+      `${API_ENDPOINTS.POSTS.LIST}${query ? `?${query}` : ''}`
+    );
   },
-  
+
   getById: async (id: string) => {
-    return api.get<Post>(`/posts/${id}`);
+    return api.get<Post>(API_ENDPOINTS.POSTS.GET(id));
   },
-  
+
   create: async (post: Partial<Post>) => {
-    return api.post<Post>('/posts', post);
+    return api.post<Post>(API_ENDPOINTS.POSTS.CREATE, post);
   },
-  
+
   update: async (id: string, post: Partial<Post>) => {
-    return api.put<Post>(`/posts/${id}`, post);
+    return api.put<Post>(API_ENDPOINTS.POSTS.UPDATE(id), post);
   },
-  
+
   delete: async (id: string) => {
-    return api.delete<void>(`/posts/${id}`);
+    return api.delete<void>(API_ENDPOINTS.POSTS.DELETE(id));
   },
 };
 
 // Events API
 export const eventsApi = {
   getAll: async () => {
-    return api.get<Event[]>('/events');
+    return api.get<Event[]>(API_ENDPOINTS.EVENTS.LIST);
   },
-  
+
   getById: async (id: string) => {
-    return api.get<Event>(`/events/${id}`);
+    return api.get<Event>(API_ENDPOINTS.EVENTS.GET(id));
   },
-  
+
   create: async (event: Partial<Event>) => {
-    return api.post<Event>('/events', event);
+    return api.post<Event>(API_ENDPOINTS.EVENTS.CREATE, event);
   },
-  
+
   update: async (id: string, event: Partial<Event>) => {
-    return api.put<Event>(`/events/${id}`, event);
+    return api.put<Event>(API_ENDPOINTS.EVENTS.UPDATE(id), event);
   },
-  
+
   delete: async (id: string) => {
-    return api.delete<void>(`/events/${id}`);
+    return api.delete<void>(API_ENDPOINTS.EVENTS.DELETE(id));
   },
 };
 
 // Translators API
 export const translatorsApi = {
   getAll: async () => {
-    return api.get<Translator[]>('/translators');
+    return api.get<Translator[]>(API_ENDPOINTS.TRANSLATORS.LIST);
   },
-  
+
   getById: async (id: string) => {
-    return api.get<Translator>(`/translators/${id}`);
+    return api.get<Translator>(API_ENDPOINTS.TRANSLATORS.GET(id));
   },
-  
+
   create: async (translator: Partial<Translator>) => {
-    return api.post<Translator>('/translators', translator);
+    return api.post<Translator>(API_ENDPOINTS.TRANSLATORS.CREATE, translator);
   },
-  
+
   update: async (id: string, translator: Partial<Translator>) => {
-    return api.put<Translator>(`/translators/${id}`, translator);
+    return api.put<Translator>(API_ENDPOINTS.TRANSLATORS.UPDATE(id), translator);
   },
-  
+
   delete: async (id: string) => {
-    return api.delete<void>(`/translators/${id}`);
+    return api.delete<void>(API_ENDPOINTS.TRANSLATORS.DELETE(id));
   },
 };
 
 // Comments API
 export const commentsApi = {
   getAll: async () => {
-    return api.get<Comment[]>('/comments');
+    return api.get<Comment[]>(API_ENDPOINTS.COMMENTS.LIST);
   },
-  
+
   getById: async (id: string) => {
-    return api.get<Comment>(`/comments/${id}`);
+    return api.get<Comment>(API_ENDPOINTS.COMMENTS.GET(id));
   },
-  
+
   approve: async (id: string) => {
-    return api.put<Comment>(`/comments/${id}/approve`, {});
+    return api.put<Comment>(API_ENDPOINTS.COMMENTS.APPROVE(id), {});
   },
-  
+
   reject: async (id: string) => {
-    return api.put<Comment>(`/comments/${id}/reject`, {});
+    return api.put<Comment>(API_ENDPOINTS.COMMENTS.REJECT(id), {});
   },
-  
+
   delete: async (id: string) => {
-    return api.delete<void>(`/comments/${id}`);
+    return api.delete<void>(API_ENDPOINTS.COMMENTS.DELETE(id));
   },
 };
 
 // Settings API
 export const settingsApi = {
   getRegions: async () => {
-    return api.get<string[]>('/settings/regions');
+    return api.get<string[]>(API_ENDPOINTS.SETTINGS.REGIONS.LIST);
   },
-  
+
   getSpheres: async () => {
-    return api.get<string[]>('/settings/spheres');
+    return api.get<string[]>(API_ENDPOINTS.SETTINGS.SPHERES.LIST);
   },
-  
+
   getTopics: async () => {
-    return api.get<string[]>('/settings/topics');
+    return api.get<string[]>(API_ENDPOINTS.SETTINGS.TOPICS.LIST);
   },
-  
+
   addRegion: async (region: string) => {
-    return api.post<string>('/settings/regions', { region });
+    return api.post<string>(API_ENDPOINTS.SETTINGS.REGIONS.CREATE, { region });
   },
-  
+
   addSphere: async (sphere: string) => {
-    return api.post<string>('/settings/spheres', { sphere });
+    return api.post<string>(API_ENDPOINTS.SETTINGS.SPHERES.CREATE, { sphere });
   },
-  
+
   addTopic: async (topic: string) => {
-    return api.post<string>('/settings/topics', { topic });
+    return api.post<string>(API_ENDPOINTS.SETTINGS.TOPICS.CREATE, { topic });
   },
-  
+
   deleteRegion: async (region: string) => {
-    return api.delete<void>(`/settings/regions/${encodeURIComponent(region)}`);
+    return api.delete<void>(API_ENDPOINTS.SETTINGS.REGIONS.DELETE(region));
   },
-  
+
   deleteSphere: async (sphere: string) => {
-    return api.delete<void>(`/settings/spheres/${encodeURIComponent(sphere)}`);
+    return api.delete<void>(API_ENDPOINTS.SETTINGS.SPHERES.DELETE(sphere));
   },
-  
+
   deleteTopic: async (topic: string) => {
-    return api.delete<void>(`/settings/topics/${encodeURIComponent(topic)}`);
+    return api.delete<void>(API_ENDPOINTS.SETTINGS.TOPICS.DELETE(topic));
   },
 };
 
