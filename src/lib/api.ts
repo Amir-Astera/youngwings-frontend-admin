@@ -122,30 +122,98 @@ export const authApi = {
 };
 
 // Posts API
-export const postsApi = {
-  getAll: async (params?: { section?: string; subsection?: string; page?: number; limit?: number }) => {
-    const queryParams = new URLSearchParams();
-    if (params?.section) queryParams.append('section', params.section);
-    if (params?.subsection) queryParams.append('subsection', params.subsection);
-    if (params?.page) queryParams.append('page', String(params.page));
-    if (params?.limit) queryParams.append('limit', String(params.limit));
-    
-    const query = queryParams.toString();
-    return api.get<{ posts: Post[]; total: number }>(
-      `${API_ENDPOINTS.POSTS.LIST}${query ? `?${query}` : ''}`
+interface ApiPost {
+  id: string;
+  title: string;
+  description: string;
+  thumbnail: string | null;
+  chapter: string;
+  topic: string;
+  author: string;
+  content: string;
+  version: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PostRequest {
+  title: string;
+  description: string;
+  chapter: string;
+  topic: string;
+  author: string;
+  content: string;
+  thumbnail?: string | null;
+}
+
+interface PostListParams {
+  section?: string;
+  subsection?: string;
+  page?: number;
+  limit?: number;
+}
+
+const mapApiPostToPost = (post: ApiPost): Post => ({
+  ...post,
+  thumbnail: post.thumbnail,
+  excerpt: post.description ?? '',
+  imageUrl: post.thumbnail ?? undefined,
+  category: post.topic ?? '',
+  section: post.chapter ?? '',
+  publishedAt: post.createdAt,
+  status: 'published',
+});
+
+const applyPostListParams = (posts: Post[], params?: PostListParams) => {
+  if (!params) {
+    return posts;
+  }
+
+  let result = [...posts];
+
+  if (params.section) {
+    result = result.filter(
+      (post) => post.section === params.section || post.chapter === params.section
     );
+  }
+
+  if (params.subsection) {
+    result = result.filter((post) => post.subsection === params.subsection);
+  }
+
+  if (params.limit) {
+    result = result.slice(0, params.limit);
+  }
+
+  return result;
+};
+
+export const postsApi = {
+  getAll: async (params?: PostListParams) => {
+    const posts = await api.get<ApiPost[]>(API_ENDPOINTS.POSTS.LIST);
+    const normalized = posts.map(mapApiPostToPost);
+    return applyPostListParams(normalized, params);
   },
 
   getById: async (id: string) => {
-    return api.get<Post>(API_ENDPOINTS.POSTS.GET(id));
+    const post = await api.get<ApiPost>(API_ENDPOINTS.POSTS.GET(id));
+    return mapApiPostToPost(post);
   },
 
-  create: async (post: Partial<Post>) => {
-    return api.post<Post>(API_ENDPOINTS.POSTS.CREATE, post);
+  create: async (post: PostRequest) => {
+    const response = await api.post<ApiPost>(API_ENDPOINTS.POSTS.CREATE, {
+      ...post,
+      thumbnail: post.thumbnail ?? null,
+    });
+    return mapApiPostToPost(response);
   },
 
-  update: async (id: string, post: Partial<Post>) => {
-    return api.put<Post>(API_ENDPOINTS.POSTS.UPDATE(id), post);
+  update: async (id: string, post: PostRequest) => {
+    const response = await api.put<ApiPost>(API_ENDPOINTS.POSTS.UPDATE(id), {
+      ...post,
+      thumbnail: post.thumbnail ?? null,
+    });
+    return mapApiPostToPost(response);
   },
 
   delete: async (id: string) => {
@@ -265,19 +333,28 @@ export const settingsApi = {
 export interface Post {
   id: string;
   title: string;
+  description: string;
+  thumbnail: string | null;
+  chapter: string;
+  topic: string;
+  author: string;
   content: string; // TipTap JSON content as string
+  version: number;
+  createdAt: string; // ISO 8601 date string
+  updatedAt: string; // ISO 8601 date string
+
+  // Derived fields for UI compatibility
   excerpt: string;
-  imageUrl?: string;
+  imageUrl?: string | null;
   category: string;
   section: string;
   subsection?: string;
-  author: string;
   publishedAt: string; // ISO 8601 date string
-  readTime: string;
-  views: number;
-  likes: number;
-  commentsCount: number;
-  tags: string[];
+  readTime?: string;
+  views?: number;
+  likes?: number;
+  commentsCount?: number;
+  tags?: string[];
   status: 'draft' | 'published';
 }
 
