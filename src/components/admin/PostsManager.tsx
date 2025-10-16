@@ -34,7 +34,7 @@ export function PostsManager() {
     try {
       setIsLoading(true);
       const data = await postsApi.getAll();
-      setPosts(data.posts);
+      setPosts(data);
     } catch (error) {
       toast.error("Ошибка загрузки постов");
     } finally {
@@ -70,10 +70,12 @@ export function PostsManager() {
   };
 
   const filteredPosts = posts.filter((post) => {
-    const matchesSearch =
-      post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      post.excerpt.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesSection = filterSection === "all" || post.section === filterSection;
+    const lowerQuery = searchQuery.toLowerCase();
+    const excerpt = (post.excerpt || post.description || "").toLowerCase();
+    const title = (post.title || "").toLowerCase();
+    const matchesSearch = title.includes(lowerQuery) || excerpt.includes(lowerQuery);
+    const sectionValue = post.section || post.chapter || "";
+    const matchesSection = filterSection === "all" || sectionValue === filterSection;
     return matchesSearch && matchesSection;
   });
 
@@ -130,62 +132,74 @@ export function PostsManager() {
         ) : filteredPosts.length === 0 ? (
           <div className="text-center py-12 text-gray-500">Постов не найдено</div>
         ) : (
-          filteredPosts.map((post) => (
-            <div
-              key={post.id}
-              className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow"
-            >
-              <div className="flex gap-4">
-                {post.imageUrl && (
-                  <img
-                    src={post.imageUrl}
-                    alt={post.title}
-                    className="w-32 h-24 object-cover rounded-lg flex-shrink-0"
-                  />
-                )}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-4 mb-2">
-                    <div className="flex-1">
-                      <h3 className="text-lg mb-1">{post.title}</h3>
-                      <p className="text-sm text-gray-600 line-clamp-2">{post.excerpt}</p>
+          filteredPosts.map((post) => {
+            const imageSrc = post.imageUrl || post.thumbnail || undefined;
+            const description = post.excerpt || post.description || "";
+            const sectionLabel = post.section || post.chapter || "";
+            const categoryLabel = post.category || post.topic || "—";
+            const publishedDate = post.publishedAt || post.createdAt;
+            const formattedDate = publishedDate
+              ? new Date(publishedDate).toLocaleDateString("ru-RU")
+              : "—";
+            const status = post.status ?? "draft";
+
+            return (
+              <div
+                key={post.id}
+                className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow"
+              >
+                <div className="flex gap-4">
+                  {imageSrc && (
+                    <img
+                      src={imageSrc}
+                      alt={post.title}
+                      className="w-32 h-24 object-cover rounded-lg flex-shrink-0"
+                    />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-4 mb-2">
+                      <div className="flex-1">
+                        <h3 className="text-lg mb-1">{post.title}</h3>
+                        <p className="text-sm text-gray-600 line-clamp-2">{description}</p>
+                      </div>
+                      <Badge
+                        variant={status === "published" ? "default" : "secondary"}
+                        className={
+                          status === "published"
+                            ? "bg-blue-100 text-blue-600 hover:bg-blue-100"
+                            : ""
+                        }
+                      >
+                        {status === "published" ? "Опубликован" : "Черновик"}
+                      </Badge>
                     </div>
-                    <Badge
-                      variant={post.status === "published" ? "default" : "secondary"}
-                      className={
-                        post.status === "published"
-                          ? "bg-blue-100 text-blue-600 hover:bg-blue-100"
-                          : ""
-                      }
-                    >
-                      {post.status === "published" ? "Опубликован" : "Черновик"}
-                    </Badge>
-                  </div>
-                  <div className="flex items-center gap-4 text-sm text-gray-500 mb-3">
-                    <span>{post.section}</span>
-                    <span>·</span>
-                    <span>{post.category}</span>
-                    <span>·</span>
-                    <span>{new Date(post.publishedAt).toLocaleDateString("ru-RU")}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button variant="outline" size="sm" onClick={() => handleEdit(post.id)}>
-                      <Edit className="w-4 h-4 mr-1" />
-                      Редактировать
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                      onClick={() => setDeletePostId(post.id)}
-                    >
-                      <Trash2 className="w-4 h-4 mr-1" />
-                      Удалить
-                    </Button>
+                    <div className="flex items-center gap-4 text-sm text-gray-500 mb-3">
+                      <span>{sectionLabel}</span>
+                      <span>·</span>
+                      <span>{categoryLabel}</span>
+                      <span>·</span>
+                      <span>{formattedDate}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button variant="outline" size="sm" onClick={() => handleEdit(post.id)}>
+                        <Edit className="w-4 h-4 mr-1" />
+                        Редактировать
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        onClick={() => setDeletePostId(post.id)}
+                      >
+                        <Trash2 className="w-4 h-4 mr-1" />
+                        Удалить
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
 
