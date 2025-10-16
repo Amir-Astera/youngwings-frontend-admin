@@ -11,9 +11,10 @@ class ApiClient {
 
   private getHeaders(): HeadersInit {
     const token = localStorage.getItem('admin_token');
+    const tokenType = localStorage.getItem('admin_token_type') ?? 'Bearer';
     return {
       'Content-Type': 'application/json',
-      ...(token && { 'Authorization': `Bearer ${token}` }),
+      ...(token && { Authorization: `${tokenType} ${token}` }),
     };
   }
 
@@ -74,12 +75,13 @@ class ApiClient {
   async uploadImage(file: File): Promise<{ url: string }> {
     const formData = new FormData();
     formData.append('file', file);
-    
+
     const token = localStorage.getItem('admin_token');
+    const tokenType = localStorage.getItem('admin_token_type') ?? 'Bearer';
     const response = await fetch(`${this.baseUrl}${API_ENDPOINTS.UPLOAD}`, {
       method: 'POST',
       headers: {
-        ...(token && { 'Authorization': `Bearer ${token}` }),
+        ...(token && { Authorization: `${tokenType} ${token}` }),
       },
       body: formData,
     });
@@ -95,6 +97,13 @@ class ApiClient {
 export const api = new ApiClient(API_BASE_URL);
 
 // Auth API
+interface AuthResponse {
+  token_type: string;
+  access_token: string;
+  refresh_token: string;
+  expires_in: string;
+}
+
 export const authApi = {
   login: async (credentials: { email: string; password: string }) => {
     const basicToken = btoa(`${credentials.email}:${credentials.password}`);
@@ -109,11 +118,12 @@ export const authApi = {
       throw new Error(`Auth Error: ${response.statusText}`);
     }
 
-    return response.json() as Promise<{ token: string; user: any }>;
+    return response.json() as Promise<AuthResponse>;
   },
-  
+
   logout: () => {
     localStorage.removeItem('admin_token');
+    localStorage.removeItem('admin_token_type');
   },
   
   isAuthenticated: () => {
