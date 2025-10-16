@@ -29,10 +29,10 @@ export const API_ENDPOINTS = {
   // Посты
   POSTS: {
     LIST: '/api/post/getAll',                      // GET - список постов
-    CREATE: '/api/posts',                          // POST - создать пост
-    GET: (id: string) => `/api/posts/${id}`,       // GET - получить пост
-    UPDATE: (id: string) => `/api/posts/${id}`,    // PUT - обновить пост
-    DELETE: (id: string) => `/api/posts/${id}`,    // DELETE - удалить пост
+    CREATE: '/api/post',                           // POST - создать пост
+    GET: (id: string) => `/api/post/${id}`,        // GET - получить пост
+    UPDATE: (id: string) => `/api/post/${id}`,     // PUT - обновить пост
+    DELETE: (id: string) => `/api/post/${id}`,     // DELETE - удалить пост
   },
   
   // События
