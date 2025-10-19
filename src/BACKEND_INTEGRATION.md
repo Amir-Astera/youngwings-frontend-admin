@@ -253,53 +253,183 @@ No content
 
 ### Events (События)
 
-#### GET /api/events
-Получить список событий
-
-**Response (200):**
-```json
-[
-  {
-    "id": "1",
-    "title": "Tech Conference 2025",
-    "description": "Описание события",
-    "imageUrl": "https://example.com/event.jpg",
-    "date": "2025-11-15",
-    "time": "10:00",
-    "location": "Алматы",
-    "format": "Офлайн",
-    "status": "upcoming",
-    "attendees": 500,
-    "region": "Алматы",
-    "sphere": "Технологии"
-  }
-]
-```
-
-#### POST /api/events
-Создать событие
+#### POST /api/admin/events
+Создать событие (доступно только для администраторов).
 
 **Request Body:**
 ```json
 {
-  "title": "Название события",
-  "description": "Описание",
-  "imageUrl": "https://example.com/event.jpg",
-  "date": "2025-11-15",
-  "time": "10:00",
-  "location": "Алматы",
-  "format": "Офлайн",
-  "status": "upcoming",
-  "region": "Алматы",
-  "sphere": "Технологии"
+  "title": "AI Summit 2025",
+  "description": "Главная конференция по ИИ в ЦА.",
+  "eventDate": "2025-11-12",
+  "eventTime": "10:00",
+  "location": "Алматы, Дворец Республики",
+  "format": "HYBRID",
+  "region": "Казахстан",
+  "sphere": "Технологии",
+  "coverUrl": "https://orientventus.com/uploads/2025/10/cover.jpg",
+  "registrationUrl": "https://example.com/register"
 }
 ```
 
-#### PUT /api/events/{id}
-Обновить событие
+**Response (201):**
+```json
+{
+  "id": "0b6a8a9b-1a3a-4c1a-9a9e-7c7f5a2d1a11",
+  "title": "AI Summit 2025",
+  "description": "Главная конференция по ИИ в ЦА.",
+  "eventDate": "2025-11-12",
+  "eventTime": "10:00",
+  "location": "Алматы, Дворец Республики",
+  "format": "HYBRID",
+  "region": "Казахстан",
+  "sphere": "Технологии",
+  "coverUrl": "https://orientventus.com/uploads/2025/10/cover.jpg",
+  "registrationUrl": "https://example.com/register",
+  "createdAt": "2025-10-18T01:02:03",
+  "updatedAt": "2025-10-18T01:02:03"
+}
+```
 
-#### DELETE /api/events/{id}
-Удалить событие
+#### PUT /api/admin/events/{id}
+Обновить существующее событие. Тело запроса совпадает со схемой создания. Успешный ответ возвращает обновлённый объект события.
+
+#### DELETE /api/admin/events/{id}
+Удалить событие. При успехе возвращает `204 No Content`.
+
+#### GET /api/events/{id}
+Получить одно событие по идентификатору.
+
+**Response (200):**
+```json
+{
+  "id": "0b6a8a9b-1a3a-4c1a-9a9e-7c7f5a2d1a11",
+  "title": "AI Summit 2025",
+  "description": "Главная конференция по ИИ в ЦА.",
+  "eventDate": "2025-11-12",
+  "eventTime": "10:00",
+  "location": "Алматы, Дворец Республики",
+  "format": "HYBRID",
+  "region": "Казахстан",
+  "sphere": "Технологии",
+  "coverUrl": "https://orientventus.com/uploads/2025/10/cover.jpg",
+  "registrationUrl": "https://example.com/register",
+  "createdAt": "2025-10-18T01:02:03",
+  "updatedAt": "2025-10-18T01:02:03"
+}
+```
+
+#### GET /api/events
+Получить список событий с пагинацией.
+
+**Query Parameters:**
+- `page` (number, default: 1)
+- `size` (number, default: 20)
+
+**Response (200):**
+```json
+{
+  "total": 57,
+  "page": 1,
+  "size": 20,
+  "items": [
+    {
+      "id": "0b6a8a9b-1a3a-4c1a-9a9e-7c7f5a2d1a11",
+      "title": "AI Summit 2025",
+      "description": "Главная конференция по ИИ в ЦА.",
+      "eventDate": "2025-11-12",
+      "eventTime": "10:00",
+      "location": "Алматы, Дворец Республики",
+      "format": "HYBRID",
+      "region": "Казахстан",
+      "sphere": "Технологии",
+      "coverUrl": null,
+      "registrationUrl": null,
+      "createdAt": "2025-10-18T01:02:03",
+      "updatedAt": "2025-10-18T01:02:03"
+    }
+  ]
+}
+```
+
+---
+
+### Comments (Комментарии)
+
+#### GET /api/comment/admin/getPageComment
+Получить список комментариев с пагинацией и фильтрами.
+
+**Query Parameters:**
+- `page` (number, ≥ 1, default: 1)
+- `size` (number, 1..100, default: 20)
+- `statuses` (string, повторяющийся параметр или CSV): `PENDING`, `APPROVED`, `REJECTED`
+- `q` (string, optional): поиск по `content` и `authorName` (ILIKE)
+- `dateFrom` (string, optional, формат `YYYY-MM-DD`)
+- `dateTo` (string, optional, формат `YYYY-MM-DD`)
+
+**Response (200):**
+```json
+{
+  "total": 123,
+  "page": 1,
+  "size": 20,
+  "items": [
+    {
+      "id": "c123",
+      "postId": "p789",
+      "authorName": "Иван Петров",
+      "content": "Отличная статья!",
+      "status": "APPROVED",
+      "likeCount": 5,
+      "dislikeCount": 0,
+      "createdAt": "2025-10-18T01:00:00"
+    }
+  ]
+}
+```
+
+#### GET /api/comment/admin/comment/{id}
+Получить один комментарий.
+
+**Response (200):**
+```json
+{
+  "id": "c123",
+  "postId": "p789",
+  "authorName": "Иван Петров",
+  "content": "Отличная статья!",
+  "status": "APPROVED",
+  "likeCount": 5,
+  "dislikeCount": 0,
+  "createdAt": "2025-10-18T01:00:00"
+}
+```
+
+#### PUT /api/comment/admin/{postId}/comments/{commentId}/status
+Изменить статус комментария.
+
+**Request Body:**
+```json
+{
+  "status": "APPROVED"
+}
+```
+
+**Response (200):**
+```json
+{
+  "id": "c123",
+  "postId": "p789",
+  "authorName": "Иван Петров",
+  "content": "Отличная статья!",
+  "status": "APPROVED",
+  "likeCount": 5,
+  "dislikeCount": 0,
+  "createdAt": "2025-10-18T01:00:00"
+}
+```
+
+`status` может принимать значения `PENDING`, `APPROVED`, `REJECTED`.
 
 ---
 
@@ -380,15 +510,31 @@ interface Event {
   id?: string;
   title: string;
   description: string;
-  imageUrl?: string;
-  date: string;             // Формат: YYYY-MM-DD
-  time: string;             // Формат: HH:MM
+  eventDate: string;        // Формат: YYYY-MM-DD
+  eventTime: string;        // Формат: HH:MM
   location: string;
-  format: string;           // "Онлайн" | "Офлайн" | "Гибрид"
-  status: string;           // "upcoming" | "ongoing" | "completed"
-  attendees?: number;
+  format: 'ONLINE' | 'OFFLINE' | 'HYBRID';
   region: string;
   sphere: string;
+  coverUrl?: string | null;
+  registrationUrl?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+```
+
+### Comment (Комментарий)
+
+```typescript
+interface Comment {
+  id: string;
+  postId: string;
+  authorName: string;
+  content: string;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  likeCount: number;
+  dislikeCount: number;
+  createdAt: string;        // ISO 8601 дата и время
 }
 ```
 
