@@ -60,11 +60,12 @@ export const API_ENDPOINTS = {
 
   // Комментарии
   COMMENTS: {
-    LIST: '/api/comments',                                     // GET - список комментариев
-    GET: (id: string) => `/api/comments/${id}`,                // GET - получить комментарий
-    APPROVE: (id: string) => `/api/comments/${id}/approve`,    // PUT - одобрить комментарий
-    REJECT: (id: string) => `/api/comments/${id}/reject`,      // PUT - отклонить комментарий
-    DELETE: (id: string) => `/api/comments/${id}`,             // DELETE - удалить комментарий
+    LIST: '/api/comment/admin/getPageComment',                               // GET - список комментариев (пагинация и фильтры)
+    GET: (id: string) => `/api/comment/admin/comment/${id}`,                  // GET - получить комментарий
+    UPDATE_STATUS: (postId: string, commentId: string) =>
+      `/api/comment/admin/${postId}/comments/${commentId}/status`,           // PUT - изменить статус комментария
+    DELETE: (postId: string, commentId: string) =>
+      `/api/comment/admin/${postId}/comments/${commentId}`,                  // DELETE - удалить комментарий
   },
 
   // Настройки
