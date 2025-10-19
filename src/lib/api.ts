@@ -96,6 +96,59 @@ class ApiClient {
 
 export const api = new ApiClient(API_BASE_URL);
 
+// Admin API
+export interface DashboardCounters {
+  totalPosts: number;
+  monthPosts: number;
+  totalEvents: number;
+  monthEvents: number;
+  totalComments: number;
+  monthComments: number;
+  totalTranslatorVacancies: number;
+  monthTranslatorVacancies: number;
+}
+
+export interface DashboardPostSummary {
+  id: string;
+  title: string;
+  createdAt: string;
+  likeCount: number;
+  dislikeCount: number;
+  commentCount: number;
+  viewCount: number;
+}
+
+export type DashboardCommentStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+
+export interface DashboardCommentSummary {
+  id: string;
+  postId: string;
+  authorName: string;
+  content: string;
+  status: DashboardCommentStatus;
+  createdAt: string;
+}
+
+export interface DashboardResponse {
+  counters: DashboardCounters;
+  latestPosts: DashboardPostSummary[];
+  latestComments: DashboardCommentSummary[];
+  generatedAt: string;
+}
+
+export const adminApi = {
+  getDashboard: async (params?: { latestPosts?: number; latestComments?: number }) => {
+    const { latestPosts = 10, latestComments = 20 } = params ?? {};
+    const searchParams = new URLSearchParams({
+      latestPosts: String(latestPosts),
+      latestComments: String(latestComments),
+    });
+
+    const endpoint = `${API_ENDPOINTS.ADMIN.DASHBOARD}?${searchParams.toString()}`;
+    return api.get<DashboardResponse>(endpoint);
+  },
+};
+
 // Auth API
 interface AuthResponse {
   token_type: string;

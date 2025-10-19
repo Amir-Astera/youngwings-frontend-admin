@@ -25,7 +25,12 @@ export const API_ENDPOINTS = {
     LOGOUT: '/auth/logout',    // POST - выход из системы
     ME: '/auth/me',            // GET - получить текущего пользователя
   },
-  
+
+  // Панель управления
+  ADMIN: {
+    DASHBOARD: '/api/admin',
+  },
+
   // Посты
   POSTS: {
     LIST: '/api/post/getAll',                      // GET - список постов
