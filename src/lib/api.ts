@@ -352,25 +352,65 @@ export const translatorsApi = {
 };
 
 // Comments API
+export interface CommentQueryParams {
+  page?: number;
+  size?: number;
+  statuses?: DashboardCommentStatus[];
+  q?: string;
+  dateFrom?: string;
+  dateTo?: string;
+}
+
 export const commentsApi = {
-  getAll: async () => {
-    return api.get<Comment[]>(API_ENDPOINTS.COMMENTS.LIST);
+  getPage: async (params: CommentQueryParams = {}) => {
+    const searchParams = new URLSearchParams();
+
+    if (params.page) {
+      searchParams.set('page', String(params.page));
+    }
+
+    if (params.size) {
+      searchParams.set('size', String(params.size));
+    }
+
+    if (params.statuses && params.statuses.length > 0) {
+      params.statuses.forEach((status) => {
+        searchParams.append('statuses', status);
+      });
+    }
+
+    if (params.q) {
+      searchParams.set('q', params.q);
+    }
+
+    if (params.dateFrom) {
+      searchParams.set('dateFrom', params.dateFrom);
+    }
+
+    if (params.dateTo) {
+      searchParams.set('dateTo', params.dateTo);
+    }
+
+    const queryString = searchParams.toString();
+    const endpoint = queryString
+      ? `${API_ENDPOINTS.COMMENTS.LIST}?${queryString}`
+      : API_ENDPOINTS.COMMENTS.LIST;
+
+    return api.get<PaginatedResult<Comment>>(endpoint);
   },
 
   getById: async (id: string) => {
     return api.get<Comment>(API_ENDPOINTS.COMMENTS.GET(id));
   },
 
-  approve: async (id: string) => {
-    return api.put<Comment>(API_ENDPOINTS.COMMENTS.APPROVE(id), {});
+  updateStatus: async (postId: string, commentId: string, status: DashboardCommentStatus) => {
+    return api.put<Comment>(API_ENDPOINTS.COMMENTS.UPDATE_STATUS(postId, commentId), {
+      status,
+    });
   },
 
-  reject: async (id: string) => {
-    return api.put<Comment>(API_ENDPOINTS.COMMENTS.REJECT(id), {});
-  },
-
-  delete: async (id: string) => {
-    return api.delete<void>(API_ENDPOINTS.COMMENTS.DELETE(id));
+  delete: async (postId: string, commentId: string) => {
+    return api.delete<void>(API_ENDPOINTS.COMMENTS.DELETE(postId, commentId));
   },
 };
 
@@ -479,10 +519,10 @@ export interface Translator {
 export interface Comment {
   id: string;
   postId: string;
-  postTitle: string;
-  author: string;
-  email: string;
+  authorName: string;
   content: string;
+  status: DashboardCommentStatus;
+  likeCount: number;
+  dislikeCount: number;
   createdAt: string; // ISO 8601 date string
-  status: 'pending' | 'approved' | 'rejected';
 }
