@@ -306,25 +306,220 @@ export const postsApi = {
 };
 
 // Events API
+const MOCK_EVENTS_KEY = 'admin_mock_events';
+const DEFAULT_MOCK_EVENTS: Event[] = [
+  {
+    id: 'mock-event-1',
+    title: 'Международная выставка молодых исследователей',
+    description:
+      'Двухдневная выставка проектов молодых ученых и инженеров с мастер-классами и нетворкингом.',
+    imageUrl:
+      'https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=800&q=80',
+    date: '2024-08-15',
+    time: '10:00',
+    location: 'Москва, ВДНХ',
+    format: 'Офлайн',
+    status: 'Предстоящее',
+    attendees: 250,
+    region: 'Москва',
+    sphere: 'Наука и технологии',
+  },
+  {
+    id: 'mock-event-2',
+    title: 'Онлайн-форум социального предпринимательства',
+    description:
+      'Серия онлайн-дискуссий о лучших практиках социального предпринимательства и поддержке молодёжных инициатив.',
+    imageUrl:
+      'https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=800&q=80',
+    date: '2024-09-05',
+    time: '14:00',
+    location: 'Онлайн',
+    format: 'Онлайн',
+    status: 'Предстоящее',
+    attendees: 180,
+    region: 'Санкт-Петербург',
+    sphere: 'Социальные проекты',
+  },
+];
+
+const loadMockCollection = <T>(key: string, defaults: T[]): T[] => {
+  try {
+    if (typeof window === 'undefined' || !window.localStorage) {
+      return [...defaults];
+    }
+
+    const storedValue = window.localStorage.getItem(key);
+    if (!storedValue) {
+      window.localStorage.setItem(key, JSON.stringify(defaults));
+      return [...defaults];
+    }
+
+    const parsed = JSON.parse(storedValue) as unknown;
+    if (Array.isArray(parsed)) {
+      return parsed as T[];
+    }
+
+    window.localStorage.setItem(key, JSON.stringify(defaults));
+    return [...defaults];
+  } catch (error) {
+    return [...defaults];
+  }
+};
+
+const saveMockCollection = <T>(key: string, data: T[]) => {
+  try {
+    if (typeof window === 'undefined' || !window.localStorage) {
+      return;
+    }
+
+    window.localStorage.setItem(key, JSON.stringify(data));
+  } catch (error) {
+    // Ignore write errors for mock data
+  }
+};
+
+const MOCK_REGIONS_KEY = 'admin_mock_regions';
+const MOCK_SPHERES_KEY = 'admin_mock_spheres';
+
+const DEFAULT_MOCK_REGIONS = [
+  'Москва',
+  'Санкт-Петербург',
+  'Новосибирская область',
+  'Татарстан',
+  'Краснодарский край',
+];
+
+const DEFAULT_MOCK_SPHERES = [
+  'Наука и технологии',
+  'Социальные проекты',
+  'Культура и искусство',
+  'Экология',
+  'Предпринимательство',
+];
+
+const generateMockId = () => {
+  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
+    return crypto.randomUUID();
+  }
+
+  return `mock-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+};
+
+const fallbackEventsApi = {
+  getAll: async (): Promise<Event[]> => {
+    return loadMockCollection<Event>(MOCK_EVENTS_KEY, DEFAULT_MOCK_EVENTS);
+  },
+
+  getById: async (id: string): Promise<Event> => {
+    const events = loadMockCollection<Event>(MOCK_EVENTS_KEY, DEFAULT_MOCK_EVENTS);
+    const event = events.find((item) => item.id === id);
+
+    if (!event) {
+      throw new Error('Event not found');
+    }
+
+    return event;
+  },
+
+  create: async (event: Partial<Event>): Promise<Event> => {
+    const events = loadMockCollection<Event>(MOCK_EVENTS_KEY, DEFAULT_MOCK_EVENTS);
+    const newEvent: Event = {
+      id: generateMockId(),
+      title: event.title ?? 'Новое событие',
+      description: event.description ?? '',
+      imageUrl: event.imageUrl ?? '',
+      date: event.date ?? new Date().toISOString().slice(0, 10),
+      time: event.time ?? '09:00',
+      location: event.location ?? '',
+      format: event.format ?? 'Онлайн',
+      status: event.status ?? 'Предстоящее',
+      attendees: event.attendees ?? 0,
+      region: event.region ?? '',
+      sphere: event.sphere ?? '',
+    };
+
+    events.unshift(newEvent);
+    saveMockCollection(MOCK_EVENTS_KEY, events);
+
+    return newEvent;
+  },
+
+  update: async (id: string, event: Partial<Event>): Promise<Event> => {
+    const events = loadMockCollection<Event>(MOCK_EVENTS_KEY, DEFAULT_MOCK_EVENTS);
+    const index = events.findIndex((item) => item.id === id);
+
+    if (index === -1) {
+      throw new Error('Event not found');
+    }
+
+    const updatedEvent: Event = {
+      ...events[index],
+      ...event,
+      id,
+    };
+
+    events[index] = updatedEvent;
+    saveMockCollection(MOCK_EVENTS_KEY, events);
+
+    return updatedEvent;
+  },
+
+  delete: async (id: string): Promise<void> => {
+    const events = loadMockCollection<Event>(MOCK_EVENTS_KEY, DEFAULT_MOCK_EVENTS);
+    const filtered = events.filter((item) => item.id !== id);
+    saveMockCollection(MOCK_EVENTS_KEY, filtered);
+  },
+};
+
 export const eventsApi = {
   getAll: async () => {
-    return api.get<Event[]>(API_ENDPOINTS.EVENTS.LIST);
+    try {
+      const data = await api.get<Event[] | { items: Event[] }>(API_ENDPOINTS.EVENTS.LIST);
+
+      if (Array.isArray(data)) {
+        return data;
+      }
+
+      if (data && Array.isArray((data as { items?: Event[] }).items)) {
+        return (data as { items: Event[] }).items;
+      }
+
+      return fallbackEventsApi.getAll();
+    } catch (error) {
+      return fallbackEventsApi.getAll();
+    }
   },
 
   getById: async (id: string) => {
-    return api.get<Event>(API_ENDPOINTS.EVENTS.GET(id));
+    try {
+      return await api.get<Event>(API_ENDPOINTS.EVENTS.GET(id));
+    } catch (error) {
+      return fallbackEventsApi.getById(id);
+    }
   },
 
   create: async (event: Partial<Event>) => {
-    return api.post<Event>(API_ENDPOINTS.EVENTS.CREATE, event);
+    try {
+      return await api.post<Event>(API_ENDPOINTS.EVENTS.CREATE, event);
+    } catch (error) {
+      return fallbackEventsApi.create(event);
+    }
   },
 
   update: async (id: string, event: Partial<Event>) => {
-    return api.put<Event>(API_ENDPOINTS.EVENTS.UPDATE(id), event);
+    try {
+      return await api.put<Event>(API_ENDPOINTS.EVENTS.UPDATE(id), event);
+    } catch (error) {
+      return fallbackEventsApi.update(id, event);
+    }
   },
 
   delete: async (id: string) => {
-    return api.delete<void>(API_ENDPOINTS.EVENTS.DELETE(id));
+    try {
+      await api.delete<void>(API_ENDPOINTS.EVENTS.DELETE(id));
+    } catch (error) {
+      await fallbackEventsApi.delete(id);
+    }
   },
 };
 
@@ -417,11 +612,31 @@ export const commentsApi = {
 // Settings API
 export const settingsApi = {
   getRegions: async () => {
-    return api.get<string[]>(API_ENDPOINTS.SETTINGS.REGIONS.LIST);
+    try {
+      const data = await api.get<string[]>(API_ENDPOINTS.SETTINGS.REGIONS.LIST);
+
+      if (Array.isArray(data)) {
+        return data;
+      }
+
+      return loadMockCollection<string>(MOCK_REGIONS_KEY, DEFAULT_MOCK_REGIONS);
+    } catch (error) {
+      return loadMockCollection<string>(MOCK_REGIONS_KEY, DEFAULT_MOCK_REGIONS);
+    }
   },
 
   getSpheres: async () => {
-    return api.get<string[]>(API_ENDPOINTS.SETTINGS.SPHERES.LIST);
+    try {
+      const data = await api.get<string[]>(API_ENDPOINTS.SETTINGS.SPHERES.LIST);
+
+      if (Array.isArray(data)) {
+        return data;
+      }
+
+      return loadMockCollection<string>(MOCK_SPHERES_KEY, DEFAULT_MOCK_SPHERES);
+    } catch (error) {
+      return loadMockCollection<string>(MOCK_SPHERES_KEY, DEFAULT_MOCK_SPHERES);
+    }
   },
 
   getTopics: async () => {
