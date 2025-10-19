@@ -30,7 +30,7 @@ export function SubsectionPage({ title, description }: SubsectionPageProps) {
       setIsLoading(true);
       const response = await postsApi.getAll({ limit: 20 });
       // Filter only published posts from this subsection
-      const publishedPosts = response.filter(
+      const publishedPosts = response.items.filter(
         (p) => p.status === "published" && (p.section === title || p.chapter === title)
       );
       setPosts(publishedPosts);
