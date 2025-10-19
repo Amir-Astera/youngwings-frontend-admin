@@ -216,6 +216,13 @@ interface PostListParams {
   limit?: number;
 }
 
+interface ApiPaginatedResponse<T> {
+  total: number;
+  page: number;
+  size: number;
+  items: T[];
+}
+
 const mapApiPostToPost = (post: ApiPost): Post => ({
   ...post,
   thumbnail: post.thumbnail,
@@ -227,7 +234,10 @@ const mapApiPostToPost = (post: ApiPost): Post => ({
   status: 'published',
 });
 
-const applyPostListParams = (posts: Post[], params?: PostListParams) => {
+const applyPostListFilters = (
+  posts: Post[],
+  params?: Pick<PostListParams, 'section' | 'subsection'>
+) => {
   if (!params) {
     return posts;
   }
@@ -244,18 +254,29 @@ const applyPostListParams = (posts: Post[], params?: PostListParams) => {
     result = result.filter((post) => post.subsection === params.subsection);
   }
 
-  if (params.limit) {
-    result = result.slice(0, params.limit);
-  }
-
   return result;
 };
 
 export const postsApi = {
-  getAll: async (params?: PostListParams) => {
-    const posts = await api.get<ApiPost[]>(API_ENDPOINTS.POSTS.LIST);
-    const normalized = posts.map(mapApiPostToPost);
-    return applyPostListParams(normalized, params);
+  getAll: async (params?: PostListParams): Promise<PaginatedResult<Post>> => {
+    const searchParams = new URLSearchParams();
+    const page = params?.page ?? 1;
+    const size = params?.limit ?? 1000;
+
+    searchParams.set('page', String(page));
+    searchParams.set('size', String(size));
+
+    const endpoint = `${API_ENDPOINTS.POSTS.LIST}?${searchParams.toString()}`;
+    const response = await api.get<ApiPaginatedResponse<ApiPost>>(endpoint);
+    const normalized = response.items.map(mapApiPostToPost);
+    const filtered = applyPostListFilters(normalized, params);
+
+    return {
+      total: params?.section || params?.subsection ? filtered.length : response.total,
+      page: response.page,
+      size: response.size,
+      items: filtered,
+    };
   },
 
   getById: async (id: string) => {
@@ -393,6 +414,13 @@ export const settingsApi = {
 };
 
 // Types
+export interface PaginatedResult<T> {
+  total: number;
+  page: number;
+  size: number;
+  items: T[];
+}
+
 export interface Post {
   id: string;
   title: string;

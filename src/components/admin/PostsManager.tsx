@@ -33,8 +33,8 @@ export function PostsManager() {
   const loadPosts = async () => {
     try {
       setIsLoading(true);
-      const data = await postsApi.getAll();
-      setPosts(data);
+      const response = await postsApi.getAll({ limit: 1000 });
+      setPosts(response.items);
     } catch (error) {
       toast.error("Ошибка загрузки постов");
     } finally {
