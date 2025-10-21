@@ -79,12 +79,68 @@ export function EventsManager() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isUploadingCover) {
+      toast.error("Дождитесь завершения загрузки обложки");
+      return;
+    }
+
+    const trimValue = (value?: string | null) => (value ?? "").trim();
+    const normalizeOptional = (value?: string | null) => {
+      const trimmed = trimValue(value);
+      return trimmed.length > 0 ? trimmed : undefined;
+    };
+
+    const normalized: Partial<Event> = {
+      title: trimValue(formData.title),
+      description: trimValue(formData.description),
+      eventDate: trimValue(formData.eventDate),
+      eventTime: trimValue(formData.eventTime),
+      location: trimValue(formData.location),
+      format: trimValue(formData.format),
+      region: trimValue(formData.region),
+      sphere: trimValue(formData.sphere),
+      coverUrl: normalizeOptional(formData.coverUrl),
+      registrationUrl: normalizeOptional(formData.registrationUrl),
+    };
+
+    const requiredFields: Array<keyof typeof normalized> = [
+      "title",
+      "description",
+      "eventDate",
+      "eventTime",
+      "location",
+      "format",
+      "region",
+      "sphere",
+    ];
+
+    const fieldLabels: Record<string, string> = {
+      title: "Заголовок",
+      description: "Описание",
+      eventDate: "Дата проведения",
+      eventTime: "Время проведения",
+      location: "Локация",
+      format: "Формат",
+      region: "Регион",
+      sphere: "Сфера",
+    };
+
+    const missingField = requiredFields.find((field) => {
+      const value = normalized[field];
+      return !value || (typeof value === "string" && value.length === 0);
+    });
+
+    if (missingField) {
+      toast.error(`Заполните поле "${fieldLabels[missingField as string] ?? missingField}"`);
+      return;
+    }
+
     try {
       if (editingEvent) {
-        await eventsApi.update(editingEvent.id, formData);
+        await eventsApi.update(editingEvent.id, normalized);
         toast.success("Событие обновлено");
       } else {
-        await eventsApi.create(formData);
+        await eventsApi.create(normalized);
         toast.success("Событие создано");
       }
       setShowDialog(false);
@@ -149,17 +205,15 @@ export function EventsManager() {
     try {
       setIsUploadingCover(true);
       const uploadResult = await api.uploadFile("ASSETS", file);
-      const uploadedUrl = uploadResult.url ?? (uploadResult as any).path ?? "";
-
-      if (!uploadedUrl) {
-        throw new Error("Не удалось получить ссылку на файл");
-      }
+      const uploadedUrl = uploadResult.url;
 
       setFormData((prev) => ({ ...prev, coverUrl: uploadedUrl }));
       toast.success("Обложка загружена");
     } catch (error) {
       console.error(error);
-      toast.error("Ошибка загрузки обложки");
+      toast.error(
+        error instanceof Error ? error.message : "Ошибка загрузки обложки"
+      );
     } finally {
       setIsUploadingCover(false);
       if (event.target) {

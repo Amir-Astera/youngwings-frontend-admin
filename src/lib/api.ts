@@ -72,46 +72,80 @@ class ApiClient {
     return response.json();
   }
 
-  async uploadImage(file: File): Promise<{ url: string }> {
+  private async uploadWithField(
+    endpoint: string,
+    file: File,
+    fieldName: string
+  ): Promise<Response> {
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append(fieldName, file, file.name);
 
     const token = localStorage.getItem('admin_token');
     const tokenType = localStorage.getItem('admin_token_type') ?? 'Bearer';
-    const response = await fetch(`${this.baseUrl}${API_ENDPOINTS.UPLOAD}`, {
+
+    return fetch(`${this.baseUrl}${endpoint}`, {
       method: 'POST',
       headers: {
+        Accept: '*/*',
         ...(token && { Authorization: `${tokenType} ${token}` }),
       },
       body: formData,
     });
+  }
 
-    if (!response.ok) {
-      throw new Error(`Upload Error: ${response.statusText}`);
+  private async normalizeUploadResponse(response: Response): Promise<{ url: string }> {
+    try {
+      const payload = await response.clone().json();
+
+      if (payload && typeof payload === 'object') {
+        const url = payload.url ?? payload.path ?? payload.location;
+        if (typeof url === 'string' && url.length > 0) {
+          return { url };
+        }
+      }
+    } catch (error) {
+      const fallbackText = await response.text();
+      throw new Error(
+        `Upload Error: ${
+          fallbackText || (error instanceof Error ? error.message : 'не удалось обработать ответ')
+        }`
+      );
     }
 
-    return response.json();
+    throw new Error('Upload Error: не удалось получить ссылку на файл');
+  }
+
+  private async uploadWithFallback(endpoint: string, file: File): Promise<{ url: string }> {
+    let response = await this.uploadWithField(endpoint, file, 'file');
+
+    if (!response.ok) {
+      const errorText = await response.text();
+
+      if (response.status >= 400 && response.status < 500) {
+        const retryResponse = await this.uploadWithField(endpoint, file, 'part');
+
+        if (!retryResponse.ok) {
+          const retryText = await retryResponse.text();
+          throw new Error(
+            `Upload Error: ${retryText || retryResponse.statusText || 'неизвестная ошибка'}`
+          );
+        }
+
+        return this.normalizeUploadResponse(retryResponse);
+      }
+
+      throw new Error(`Upload Error: ${errorText || response.statusText}`);
+    }
+
+    return this.normalizeUploadResponse(response);
+  }
+
+  async uploadImage(file: File): Promise<{ url: string }> {
+    return this.uploadWithFallback(API_ENDPOINTS.UPLOAD, file);
   }
 
   async uploadFile(directory: string, file: File): Promise<{ url: string }> {
-    const formData = new FormData();
-    formData.append('file', file);
-
-    const token = localStorage.getItem('admin_token');
-    const tokenType = localStorage.getItem('admin_token_type') ?? 'Bearer';
-    const response = await fetch(`${this.baseUrl}${API_ENDPOINTS.FILES.UPLOAD(directory)}`, {
-      method: 'POST',
-      headers: {
-        ...(token && { Authorization: `${tokenType} ${token}` }),
-      },
-      body: formData,
-    });
-
-    if (!response.ok) {
-      throw new Error(`Upload Error: ${response.statusText}`);
-    }
-
-    return response.json();
+    return this.uploadWithFallback(API_ENDPOINTS.FILES.UPLOAD(directory), file);
   }
 }
 
@@ -444,6 +478,27 @@ const mapApiEventToEvent = (event: any): Event => ({
   updatedAt: event.updatedAt,
 });
 
+const trimValue = (value: unknown): string =>
+  typeof value === 'string' ? value.trim() : '';
+
+const normalizeOptionalField = (value: unknown): string | null => {
+  const trimmed = trimValue(value);
+  return trimmed.length > 0 ? trimmed : null;
+};
+
+const buildEventRequestPayload = (event: Partial<Event>) => ({
+  title: trimValue(event.title),
+  description: trimValue(event.description),
+  eventDate: trimValue(event.eventDate),
+  eventTime: trimValue(event.eventTime),
+  location: trimValue(event.location),
+  format: trimValue(event.format),
+  region: trimValue(event.region),
+  sphere: trimValue(event.sphere),
+  coverUrl: normalizeOptionalField(event.coverUrl),
+  registrationUrl: normalizeOptionalField(event.registrationUrl),
+});
+
 const fallbackEventsApi = {
   getAll: async (): Promise<Event[]> => {
     return loadMockCollection<Event>(MOCK_EVENTS_KEY, DEFAULT_MOCK_EVENTS);
@@ -543,45 +598,23 @@ export const eventsApi = {
 
   create: async (event: Partial<Event>) => {
     try {
-      const payload = {
-        title: event.title,
-        description: event.description,
-        eventDate: event.eventDate,
-        eventTime: event.eventTime,
-        location: event.location,
-        format: event.format,
-        region: event.region,
-        sphere: event.sphere,
-        coverUrl: event.coverUrl,
-        registrationUrl: event.registrationUrl,
-      };
-
+      const payload = buildEventRequestPayload(event);
       const data = await api.post<Event>(API_ENDPOINTS.EVENTS.CREATE, payload);
       return mapApiEventToEvent(data);
     } catch (error) {
-      return fallbackEventsApi.create(event);
+      console.error('Failed to create event', error);
+      throw error;
     }
   },
 
   update: async (id: string, event: Partial<Event>) => {
     try {
-      const payload = {
-        title: event.title,
-        description: event.description,
-        eventDate: event.eventDate,
-        eventTime: event.eventTime,
-        location: event.location,
-        format: event.format,
-        region: event.region,
-        sphere: event.sphere,
-        coverUrl: event.coverUrl,
-        registrationUrl: event.registrationUrl,
-      };
-
+      const payload = buildEventRequestPayload(event);
       const data = await api.put<Event>(API_ENDPOINTS.EVENTS.UPDATE(id), payload);
       return mapApiEventToEvent(data);
     } catch (error) {
-      return fallbackEventsApi.update(id, event);
+      console.error('Failed to update event', error);
+      throw error;
     }
   },
 
@@ -589,7 +622,8 @@ export const eventsApi = {
     try {
       await api.delete<void>(API_ENDPOINTS.EVENTS.DELETE(id));
     } catch (error) {
-      await fallbackEventsApi.delete(id);
+      console.error('Failed to delete event', error);
+      throw error;
     }
   },
 };
