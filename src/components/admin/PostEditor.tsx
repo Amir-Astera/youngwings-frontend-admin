@@ -63,10 +63,10 @@ export function PostEditor({ postId, onSave, onCancel }: PostEditorProps) {
   const [showPreview, setShowPreview] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [post, setPost] = useState<Partial<Post>>(() => createInitialPostState());
-  const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>("");
   const [topics, setTopics] = useState<string[]>([]);
   const [initialContent, setInitialContent] = useState<string | null>(null);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   const editor = useEditor({
     extensions: [
@@ -123,8 +123,6 @@ export function PostEditor({ postId, onSave, onCancel }: PostEditorProps) {
         tags: data.tags ?? [],
       });
 
-      setImageFile(null);
-
       if (normalizedTopic) {
         setTopics((prev) =>
           prev.includes(normalizedTopic) ? prev : [normalizedTopic, ...prev]
@@ -151,7 +149,6 @@ export function PostEditor({ postId, onSave, onCancel }: PostEditorProps) {
       loadPost();
     } else {
       setPost(createInitialPostState());
-      setImageFile(null);
       setImagePreview("");
       setInitialContent("");
     }
@@ -180,16 +177,37 @@ export function PostEditor({ postId, onSave, onCancel }: PostEditorProps) {
     setInitialContent(null);
   }, [editor, initialContent]);
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const input = event.target;
+    const file = input.files?.[0];
+    if (!file) {
+      return;
+    }
 
-    setImageFile(file);
     const reader = new FileReader();
     reader.onloadend = () => {
       setImagePreview(reader.result as string);
     };
     reader.readAsDataURL(file);
+
+    try {
+      setIsUploadingImage(true);
+      const uploadResult = await api.uploadFile("ASSETS", file);
+      const uploadedUrl = uploadResult.url;
+
+      setPost((prev) => ({
+        ...prev,
+        thumbnail: uploadedUrl,
+        imageUrl: uploadedUrl,
+      }));
+      setImagePreview(uploadedUrl);
+      toast.success("Обложка загружена");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Ошибка загрузки обложки");
+    } finally {
+      setIsUploadingImage(false);
+      input.value = "";
+    }
   };
 
   const handleSave = async (status: "draft" | "published") => {
@@ -213,14 +231,14 @@ export function PostEditor({ postId, onSave, onCancel }: PostEditorProps) {
       return;
     }
 
+    if (isUploadingImage) {
+      toast.error("Дождитесь завершения загрузки обложки");
+      return;
+    }
+
     setIsLoading(true);
     try {
       let thumbnail = post.imageUrl ?? post.thumbnail ?? null;
-
-      if (imageFile) {
-        const uploadResult = await api.uploadImage(imageFile);
-        thumbnail = uploadResult.url;
-      }
 
       if (typeof thumbnail === "string") {
         thumbnail = thumbnail.trim() || null;
@@ -350,7 +368,11 @@ export function PostEditor({ postId, onSave, onCancel }: PostEditorProps) {
                     type="file"
                     accept="image/*"
                     onChange={handleImageUpload}
+                    disabled={isUploadingImage}
                   />
+                  {isUploadingImage && (
+                    <p className="text-sm text-gray-500">Загрузка файла...</p>
+                  )}
                   {imagePreview && (
                     <img
                       src={imagePreview}
@@ -486,7 +508,7 @@ export function PostEditor({ postId, onSave, onCancel }: PostEditorProps) {
                     })
                   }
                   list={topics.length > 0 ? "topics-list" : undefined}
-                  placeholder="Выберите или введите тему"
+                  placeholder="Напишите одну тему поста"
                   className="mt-2"
                   required
                 />
