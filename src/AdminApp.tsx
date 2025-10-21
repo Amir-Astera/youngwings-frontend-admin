@@ -6,10 +6,18 @@ import { EventsManager } from "./components/admin/EventsManager";
 import { TranslatorsManager } from "./components/admin/TranslatorsManager";
 import { CommentsManager } from "./components/admin/CommentsManager";
 import { SettingsManager } from "./components/admin/SettingsManager";
+import { Theme } from "./lib/theme";
+import { ThemeToggle } from "./components/admin/ThemeToggle";
 import { authApi } from "./lib/api";
 
 // Login Page Component
-function LoginPage({ onLogin }: { onLogin: () => void }) {
+interface LoginPageProps {
+  onLogin: () => void;
+  theme: Theme;
+  onThemeChange: (theme: Theme) => void;
+}
+
+function LoginPage({ onLogin, theme, onThemeChange }: LoginPageProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -33,7 +41,10 @@ function LoginPage({ onLogin }: { onLogin: () => void }) {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+    <div className="relative min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <div className="absolute top-4 right-4">
+        <ThemeToggle theme={theme} onThemeChange={onThemeChange} />
+      </div>
       <div className="w-full max-w-md">
         <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-8">
           <div className="flex items-center justify-center gap-2 mb-8">
@@ -112,7 +123,13 @@ function LoginPage({ onLogin }: { onLogin: () => void }) {
 }
 
 // Main Admin App
-export default function AdminApp({ onExit }: { onExit?: () => void }) {
+interface AdminAppProps {
+  onExit?: () => void;
+  theme: Theme;
+  onThemeChange: (theme: Theme) => void;
+}
+
+export default function AdminApp({ onExit, theme, onThemeChange }: AdminAppProps) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentPage, setCurrentPage] = useState("dashboard");
 
@@ -121,7 +138,13 @@ export default function AdminApp({ onExit }: { onExit?: () => void }) {
   }, []);
 
   if (!isAuthenticated) {
-    return <LoginPage onLogin={() => setIsAuthenticated(true)} />;
+    return (
+      <LoginPage
+        onLogin={() => setIsAuthenticated(true)}
+        theme={theme}
+        onThemeChange={onThemeChange}
+      />
+    );
   }
 
   const renderPage = () => {
@@ -144,7 +167,13 @@ export default function AdminApp({ onExit }: { onExit?: () => void }) {
   };
 
   return (
-    <AdminLayout currentPage={currentPage} onPageChange={setCurrentPage} onExit={onExit}>
+    <AdminLayout
+      currentPage={currentPage}
+      onPageChange={setCurrentPage}
+      onExit={onExit}
+      theme={theme}
+      onThemeChange={onThemeChange}
+    >
       {renderPage()}
     </AdminLayout>
   );

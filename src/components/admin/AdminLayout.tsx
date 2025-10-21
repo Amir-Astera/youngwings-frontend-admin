@@ -1,8 +1,8 @@
 import { ReactNode, useState } from "react";
-import { 
-  LayoutDashboard, 
-  FileText, 
-  Calendar, 
+import {
+  LayoutDashboard,
+  FileText,
+  Calendar,
   Image, 
   Languages, 
   TrendingUp, 
@@ -15,12 +15,16 @@ import {
 } from "lucide-react";
 import { Button } from "../ui/button";
 import { authApi } from "../../lib/api";
+import { Theme } from "../../lib/theme";
+import { ThemeToggle } from "./ThemeToggle";
 
 interface AdminLayoutProps {
   children: ReactNode;
   currentPage: string;
   onPageChange: (page: string) => void;
   onExit?: () => void;
+  theme: Theme;
+  onThemeChange: (theme: Theme) => void;
 }
 
 const menuItems = [
@@ -32,7 +36,14 @@ const menuItems = [
   { id: "settings", label: "Настройки", icon: Settings },
 ];
 
-export function AdminLayout({ children, currentPage, onPageChange, onExit }: AdminLayoutProps) {
+export function AdminLayout({
+  children,
+  currentPage,
+  onPageChange,
+  onExit,
+  theme,
+  onThemeChange,
+}: AdminLayoutProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const handleLogout = () => {
@@ -68,7 +79,8 @@ export function AdminLayout({ children, currentPage, onPageChange, onExit }: Adm
             </div>
           </div>
           
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
+            <ThemeToggle theme={theme} onThemeChange={onThemeChange} />
             <Button variant="ghost" onClick={handleExitAdmin} className="gap-2">
               <ArrowLeft className="w-4 h-4" />
               <span className="hidden sm:inline">К сайту</span>
