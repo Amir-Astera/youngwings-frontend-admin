@@ -435,23 +435,65 @@ const saveMockCollection = <T>(key: string, data: T[]) => {
   }
 };
 
+const createPaginatedResult = <T>(items: T[], page = 1, size?: number): PaginatedResult<T> => {
+  const effectiveSize = size ?? (items.length || 1);
+  return {
+    total: items.length,
+    page,
+    size: effectiveSize,
+    items,
+  };
+};
+
+const addToMockCollection = (key: string, defaults: string[], value: string): string[] => {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return loadMockCollection<string>(key, defaults);
+  }
+
+  const collection = loadMockCollection<string>(key, defaults);
+  const exists = collection.some((item) => item.toLowerCase() === trimmed.toLowerCase());
+
+  if (exists) {
+    return collection;
+  }
+
+  const updated = [trimmed, ...collection];
+  saveMockCollection(key, updated);
+  return updated;
+};
+
+const removeFromMockCollection = (key: string, defaults: string[], value: string): string[] => {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return loadMockCollection<string>(key, defaults);
+  }
+
+  const collection = loadMockCollection<string>(key, defaults);
+  const updated = collection.filter((item) => item.toLowerCase() !== trimmed.toLowerCase());
+  saveMockCollection(key, updated);
+  return updated;
+};
+
 const MOCK_REGIONS_KEY = 'admin_mock_regions';
 const MOCK_SPHERES_KEY = 'admin_mock_spheres';
 
 const DEFAULT_MOCK_REGIONS = [
-  'Москва',
-  'Санкт-Петербург',
-  'Новосибирская область',
-  'Татарстан',
-  'Краснодарский край',
+  'Республика Казахстан',
+  'Алматы',
+  'Астана',
+  'Кыргызстан',
+  'Узбекистан',
+  'Таджикистан',
+  'Туркменистан',
 ];
 
 const DEFAULT_MOCK_SPHERES = [
-  'Наука и технологии',
-  'Социальные проекты',
-  'Культура и искусство',
-  'Экология',
-  'Предпринимательство',
+  'Зеленая экономика',
+  'Экология Центральной Азии',
+  'Социальные инновации',
+  'Технологическое развитие',
+  'Городская устойчивость',
 ];
 
 const generateMockId = () => {
@@ -478,6 +520,34 @@ const mapApiEventToEvent = (event: any): Event => ({
   updatedAt: event.updatedAt,
 });
 
+interface ApiTranslatorVacancy {
+  id: string;
+  fullName: string;
+  languages: string;
+  specialization: string;
+  experience: string;
+  location: string;
+  qrUrl: string;
+  nickname: string;
+  version: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+const mapApiTranslatorToTranslator = (translator: ApiTranslatorVacancy): Translator => ({
+  id: translator.id,
+  fullName: translator.fullName,
+  languages: translator.languages ?? '',
+  specialization: translator.specialization ?? '',
+  experience: translator.experience ?? '',
+  location: translator.location ?? '',
+  qrUrl: translator.qrUrl ?? '',
+  nickname: translator.nickname ?? '',
+  version: translator.version ?? 0,
+  createdAt: translator.createdAt ?? '',
+  updatedAt: translator.updatedAt ?? '',
+});
+
 const trimValue = (value: unknown): string =>
   typeof value === 'string' ? value.trim() : '';
 
@@ -500,8 +570,9 @@ const buildEventRequestPayload = (event: Partial<Event>) => ({
 });
 
 const fallbackEventsApi = {
-  getAll: async (): Promise<Event[]> => {
-    return loadMockCollection<Event>(MOCK_EVENTS_KEY, DEFAULT_MOCK_EVENTS);
+  getAll: async (): Promise<PaginatedResult<Event>> => {
+    const events = loadMockCollection<Event>(MOCK_EVENTS_KEY, DEFAULT_MOCK_EVENTS);
+    return createPaginatedResult(events);
   },
 
   getById: async (id: string): Promise<Event> => {
@@ -534,8 +605,8 @@ const fallbackEventsApi = {
       updatedAt: timestamp,
     };
 
-    events.unshift(newEvent);
-    saveMockCollection(MOCK_EVENTS_KEY, events);
+    const updatedEvents = [newEvent, ...events];
+    saveMockCollection(MOCK_EVENTS_KEY, updatedEvents);
 
     return newEvent;
   },
@@ -569,16 +640,25 @@ const fallbackEventsApi = {
 };
 
 export const eventsApi = {
-  getAll: async () => {
+  getAll: async (params?: { page?: number; size?: number }): Promise<PaginatedResult<Event>> => {
     try {
-      const data = await api.get<Event[] | { items: Event[] }>(API_ENDPOINTS.EVENTS.LIST);
+      const searchParams = new URLSearchParams();
+      const page = params?.page ?? 1;
+      const size = params?.size ?? 20;
 
-      if (Array.isArray(data)) {
-        return data.map(mapApiEventToEvent);
-      }
+      searchParams.set('page', String(page));
+      searchParams.set('size', String(size));
 
-      if (data && Array.isArray((data as { items?: Event[] }).items)) {
-        return (data as { items: Event[] }).items.map(mapApiEventToEvent);
+      const endpoint = `${API_ENDPOINTS.EVENTS.LIST}?${searchParams.toString()}`;
+      const data = await api.get<PaginatedResult<any>>(endpoint);
+
+      if (data && Array.isArray(data.items)) {
+        return {
+          total: Number(data.total) || data.items.length,
+          page: Number(data.page) || page,
+          size: Number(data.size) || size,
+          items: data.items.map(mapApiEventToEvent),
+        };
       }
 
       return fallbackEventsApi.getAll();
@@ -630,20 +710,76 @@ export const eventsApi = {
 
 // Translators API
 export const translatorsApi = {
-  getAll: async () => {
-    return api.get<Translator[]>(API_ENDPOINTS.TRANSLATORS.LIST);
+  getAll: async (
+    params?: TranslatorQueryParams
+  ): Promise<PaginatedResult<Translator>> => {
+    const searchParams = new URLSearchParams();
+    const page = params?.page ?? 1;
+    const size = params?.size ?? 20;
+
+    searchParams.set('page', String(page));
+    searchParams.set('size', String(size));
+
+    if (params?.q) {
+      searchParams.set('q', params.q);
+    }
+
+    if (params?.languages?.length) {
+      searchParams.set('languages', params.languages.join(','));
+    }
+
+    if (params?.specializations?.length) {
+      searchParams.set('specializations', params.specializations.join(','));
+    }
+
+    if (params?.experience) {
+      searchParams.set('experience', params.experience);
+    }
+
+    const endpoint = `${API_ENDPOINTS.TRANSLATORS.LIST}?${searchParams.toString()}`;
+    const data = await api.get<PaginatedResult<ApiTranslatorVacancy>>(endpoint);
+
+    return {
+      total: Number(data.total) || data.items.length,
+      page: Number(data.page) || page,
+      size: Number(data.size) || size,
+      items: data.items.map(mapApiTranslatorToTranslator),
+    };
   },
 
   getById: async (id: string) => {
-    return api.get<Translator>(API_ENDPOINTS.TRANSLATORS.GET(id));
+    const data = await api.get<ApiTranslatorVacancy>(API_ENDPOINTS.TRANSLATORS.GET(id));
+    return mapApiTranslatorToTranslator(data);
   },
 
-  create: async (translator: Partial<Translator>) => {
-    return api.post<Translator>(API_ENDPOINTS.TRANSLATORS.CREATE, translator);
+  create: async (translator: TranslatorRequest) => {
+    const payload = {
+      fullName: translator.fullName.trim(),
+      languages: translator.languages.trim(),
+      specialization: translator.specialization.trim(),
+      experience: translator.experience.trim(),
+      location: translator.location.trim(),
+      qrUrl: translator.qrUrl.trim(),
+      nickname: translator.nickname.trim(),
+    };
+
+    const data = await api.post<ApiTranslatorVacancy>(API_ENDPOINTS.TRANSLATORS.CREATE, payload);
+    return mapApiTranslatorToTranslator(data);
   },
 
-  update: async (id: string, translator: Partial<Translator>) => {
-    return api.put<Translator>(API_ENDPOINTS.TRANSLATORS.UPDATE(id), translator);
+  update: async (id: string, translator: TranslatorRequest) => {
+    const payload = {
+      fullName: translator.fullName.trim(),
+      languages: translator.languages.trim(),
+      specialization: translator.specialization.trim(),
+      experience: translator.experience.trim(),
+      location: translator.location.trim(),
+      qrUrl: translator.qrUrl.trim(),
+      nickname: translator.nickname.trim(),
+    };
+
+    const data = await api.put<ApiTranslatorVacancy>(API_ENDPOINTS.TRANSLATORS.UPDATE(id), payload);
+    return mapApiTranslatorToTranslator(data);
   },
 
   delete: async (id: string) => {
@@ -717,31 +853,11 @@ export const commentsApi = {
 // Settings API
 export const settingsApi = {
   getRegions: async () => {
-    try {
-      const data = await api.get<string[]>(API_ENDPOINTS.SETTINGS.REGIONS.LIST);
-
-      if (Array.isArray(data)) {
-        return data;
-      }
-
-      return loadMockCollection<string>(MOCK_REGIONS_KEY, DEFAULT_MOCK_REGIONS);
-    } catch (error) {
-      return loadMockCollection<string>(MOCK_REGIONS_KEY, DEFAULT_MOCK_REGIONS);
-    }
+    return loadMockCollection<string>(MOCK_REGIONS_KEY, DEFAULT_MOCK_REGIONS);
   },
 
   getSpheres: async () => {
-    try {
-      const data = await api.get<string[]>(API_ENDPOINTS.SETTINGS.SPHERES.LIST);
-
-      if (Array.isArray(data)) {
-        return data;
-      }
-
-      return loadMockCollection<string>(MOCK_SPHERES_KEY, DEFAULT_MOCK_SPHERES);
-    } catch (error) {
-      return loadMockCollection<string>(MOCK_SPHERES_KEY, DEFAULT_MOCK_SPHERES);
-    }
+    return loadMockCollection<string>(MOCK_SPHERES_KEY, DEFAULT_MOCK_SPHERES);
   },
 
   getTopics: async () => {
@@ -749,11 +865,11 @@ export const settingsApi = {
   },
 
   addRegion: async (region: string) => {
-    return api.post<string>(API_ENDPOINTS.SETTINGS.REGIONS.CREATE, { region });
+    return addToMockCollection(MOCK_REGIONS_KEY, DEFAULT_MOCK_REGIONS, region);
   },
 
   addSphere: async (sphere: string) => {
-    return api.post<string>(API_ENDPOINTS.SETTINGS.SPHERES.CREATE, { sphere });
+    return addToMockCollection(MOCK_SPHERES_KEY, DEFAULT_MOCK_SPHERES, sphere);
   },
 
   addTopic: async (topic: string) => {
@@ -761,11 +877,11 @@ export const settingsApi = {
   },
 
   deleteRegion: async (region: string) => {
-    return api.delete<void>(API_ENDPOINTS.SETTINGS.REGIONS.DELETE(region));
+    return removeFromMockCollection(MOCK_REGIONS_KEY, DEFAULT_MOCK_REGIONS, region);
   },
 
   deleteSphere: async (sphere: string) => {
-    return api.delete<void>(API_ENDPOINTS.SETTINGS.SPHERES.DELETE(sphere));
+    return removeFromMockCollection(MOCK_SPHERES_KEY, DEFAULT_MOCK_SPHERES, sphere);
   },
 
   deleteTopic: async (topic: string) => {
@@ -827,14 +943,35 @@ export interface Event {
 
 export interface Translator {
   id: string;
-  name: string;
-  languages: string[];
-  specialization: string[];
+  fullName: string;
+  languages: string;
+  specialization: string;
   experience: string;
-  hourlyRate: string;
-  available: boolean;
-  rating: number;
-  completedProjects: number;
+  location: string;
+  qrUrl: string;
+  nickname: string;
+  version: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TranslatorRequest {
+  fullName: string;
+  languages: string;
+  specialization: string;
+  experience: string;
+  location: string;
+  qrUrl: string;
+  nickname: string;
+}
+
+export interface TranslatorQueryParams {
+  page?: number;
+  size?: number;
+  q?: string;
+  languages?: string[];
+  specializations?: string[];
+  experience?: string;
 }
 
 export interface Comment {
