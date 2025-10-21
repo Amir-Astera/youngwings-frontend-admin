@@ -118,6 +118,31 @@
   }
 }
 
+:root.bw-theme {
+  --primary: #1f2937;
+  --primary-foreground: #f9fafb;
+  --switch-background: #d1d5db;
+  --color-blue-50: #f5f5f5;
+  --color-blue-100: #e5e5e5;
+  --color-blue-200: #d4d4d4;
+  --color-blue-500: #737373;
+  --color-blue-600: #525252;
+  --color-blue-700: #404040;
+  --color-blue-800: #262626;
+  --color-green-50: #f5f5f5;
+  --color-green-100: #e5e5e5;
+  --color-green-600: #525252;
+  --color-green-700: #404040;
+  --color-red-50: #f5f5f5;
+  --color-red-600: #525252;
+  --color-red-700: #404040;
+  --color-orange-50: #f5f5f5;
+  --color-orange-600: #525252;
+  --color-orange-700: #404040;
+  --color-yellow-100: #f5f5f5;
+  --color-yellow-700: #404040;
+}
+
 @layer base {
   *, :after, :before, ::backdrop {
     box-sizing: border-box;
