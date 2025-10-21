@@ -23,7 +23,7 @@ import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Textarea } from "../ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
-import { Post, PostRequest, postsApi, api } from "../../lib/api";
+import { Post, PostRequest, postsApi, api, settingsApi } from "../../lib/api";
 import { toast } from "sonner";
 
 interface PostEditorProps {
@@ -63,6 +63,7 @@ export function PostEditor({ postId, onSave, onCancel }: PostEditorProps) {
   });
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>("");
+  const [topics, setTopics] = useState<string[]>([]);
 
   const editor = useEditor({
     extensions: [
@@ -75,9 +76,22 @@ export function PostEditor({ postId, onSave, onCancel }: PostEditorProps) {
     ],
     content: post.content || "",
     onUpdate: ({ editor }) => {
-      setPost({ ...post, content: editor.getJSON() as any });
+      setPost((prev) => ({ ...prev, content: editor.getJSON() as any }));
     },
   });
+
+  useEffect(() => {
+    const fetchTopics = async () => {
+      try {
+        const data = await settingsApi.getTopics();
+        setTopics(data);
+      } catch (error) {
+        console.error("Ошибка загрузки тем", error);
+      }
+    };
+
+    fetchTopics();
+  }, []);
 
   useEffect(() => {
     if (postId) {
@@ -96,6 +110,11 @@ export function PostEditor({ postId, onSave, onCancel }: PostEditorProps) {
         category: data.category ?? data.topic,
         topic: data.topic,
       });
+      if (data.topic) {
+        setTopics((prev) =>
+          prev.includes(data.topic) ? prev : [data.topic, ...prev]
+        );
+      }
       if (data.imageUrl) {
         setImagePreview(data.imageUrl);
       } else if (data.thumbnail) {
@@ -384,6 +403,32 @@ export function PostEditor({ postId, onSave, onCancel }: PostEditorProps) {
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="topic">Тема *</Label>
+                <Input
+                  id="topic"
+                  value={post.topic ?? ""}
+                  onChange={(e) =>
+                    setPost({
+                      ...post,
+                      topic: e.target.value,
+                      category: e.target.value,
+                    })
+                  }
+                  list={topics.length > 0 ? "topics-list" : undefined}
+                  placeholder="Выберите или введите тему"
+                  className="mt-2"
+                  required
+                />
+                {topics.length > 0 && (
+                  <datalist id="topics-list">
+                    {topics.map((topic) => (
+                      <option key={topic} value={topic} />
+                    ))}
+                  </datalist>
+                )}
               </div>
 
               <div>
