@@ -1,10 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Plus, Edit, Trash2 } from "lucide-react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Textarea } from "../ui/textarea";
-import { Event, eventsApi, settingsApi } from "../../lib/api";
+import { api, Event, eventsApi, settingsApi } from "../../lib/api";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -35,15 +35,17 @@ export function EventsManager() {
   const [formData, setFormData] = useState<Partial<Event>>({
     title: "",
     description: "",
-    date: "",
-    time: "",
+    eventDate: "",
+    eventTime: "",
     location: "",
-    format: "Онлайн",
-    status: "Предстоящее",
-    attendees: 0,
+    format: "ONLINE",
     region: "",
     sphere: "",
+    coverUrl: "",
+    registrationUrl: "",
   });
+  const [isUploadingCover, setIsUploadingCover] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     loadEvents();
@@ -77,12 +79,68 @@ export function EventsManager() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isUploadingCover) {
+      toast.error("Дождитесь завершения загрузки обложки");
+      return;
+    }
+
+    const trimValue = (value?: string | null) => (value ?? "").trim();
+    const normalizeOptional = (value?: string | null) => {
+      const trimmed = trimValue(value);
+      return trimmed.length > 0 ? trimmed : undefined;
+    };
+
+    const normalized: Partial<Event> = {
+      title: trimValue(formData.title),
+      description: trimValue(formData.description),
+      eventDate: trimValue(formData.eventDate),
+      eventTime: trimValue(formData.eventTime),
+      location: trimValue(formData.location),
+      format: trimValue(formData.format),
+      region: trimValue(formData.region),
+      sphere: trimValue(formData.sphere),
+      coverUrl: normalizeOptional(formData.coverUrl),
+      registrationUrl: normalizeOptional(formData.registrationUrl),
+    };
+
+    const requiredFields: Array<keyof typeof normalized> = [
+      "title",
+      "description",
+      "eventDate",
+      "eventTime",
+      "location",
+      "format",
+      "region",
+      "sphere",
+    ];
+
+    const fieldLabels: Record<string, string> = {
+      title: "Заголовок",
+      description: "Описание",
+      eventDate: "Дата проведения",
+      eventTime: "Время проведения",
+      location: "Локация",
+      format: "Формат",
+      region: "Регион",
+      sphere: "Сфера",
+    };
+
+    const missingField = requiredFields.find((field) => {
+      const value = normalized[field];
+      return !value || (typeof value === "string" && value.length === 0);
+    });
+
+    if (missingField) {
+      toast.error(`Заполните поле "${fieldLabels[missingField as string] ?? missingField}"`);
+      return;
+    }
+
     try {
       if (editingEvent) {
-        await eventsApi.update(editingEvent.id, formData);
+        await eventsApi.update(editingEvent.id, normalized);
         toast.success("Событие обновлено");
       } else {
-        await eventsApi.create(formData);
+        await eventsApi.create(normalized);
         toast.success("Событие создано");
       }
       setShowDialog(false);
@@ -95,7 +153,19 @@ export function EventsManager() {
 
   const handleEdit = (event: Event) => {
     setEditingEvent(event);
-    setFormData(event);
+    setFormData({
+      id: event.id,
+      title: event.title,
+      description: event.description,
+      eventDate: event.eventDate,
+      eventTime: event.eventTime,
+      location: event.location,
+      format: event.format,
+      region: event.region,
+      sphere: event.sphere,
+      coverUrl: event.coverUrl ?? "",
+      registrationUrl: event.registrationUrl ?? "",
+    });
     setShowDialog(true);
   };
 
@@ -114,16 +184,42 @@ export function EventsManager() {
     setFormData({
       title: "",
       description: "",
-      date: "",
-      time: "",
+      eventDate: "",
+      eventTime: "",
       location: "",
-      format: "Онлайн",
-      status: "Предстоящее",
-      attendees: 0,
+      format: "ONLINE",
       region: "",
       sphere: "",
+      coverUrl: "",
+      registrationUrl: "",
     });
     setEditingEvent(null);
+  };
+
+  const handleCoverUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    try {
+      setIsUploadingCover(true);
+      const uploadResult = await api.uploadFile("ASSETS", file);
+      const uploadedUrl = uploadResult.url;
+
+      setFormData((prev) => ({ ...prev, coverUrl: uploadedUrl }));
+      toast.success("Обложка загружена");
+    } catch (error) {
+      console.error(error);
+      toast.error(
+        error instanceof Error ? error.message : "Ошибка загрузки обложки"
+      );
+    } finally {
+      setIsUploadingCover(false);
+      if (event.target) {
+        event.target.value = "";
+      }
+    }
   };
 
   return (
@@ -155,9 +251,9 @@ export function EventsManager() {
               className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm"
             >
               <div className="flex gap-4">
-                {event.imageUrl && (
+                {event.coverUrl && (
                   <img
-                    src={event.imageUrl}
+                    src={event.coverUrl}
                     alt={event.title}
                     className="w-32 h-24 object-cover rounded-lg"
                   />
@@ -168,7 +264,13 @@ export function EventsManager() {
                     {event.description}
                   </p>
                   <div className="flex items-center gap-4 text-sm text-gray-500 mb-3">
-                    <span>{event.date}</span>
+                    <span>{event.eventDate}</span>
+                    {event.eventTime && (
+                      <>
+                        <span>·</span>
+                        <span>{event.eventTime}</span>
+                      </>
+                    )}
                     <span>·</span>
                     <span>{event.location}</span>
                     <span>·</span>
@@ -238,8 +340,8 @@ export function EventsManager() {
                 <Input
                   id="date"
                   type="date"
-                  value={formData.date}
-                  onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                  value={formData.eventDate}
+                  onChange={(e) => setFormData({ ...formData, eventDate: e.target.value })}
                   required
                 />
               </div>
@@ -248,8 +350,8 @@ export function EventsManager() {
                 <Input
                   id="time"
                   type="time"
-                  value={formData.time}
-                  onChange={(e) => setFormData({ ...formData, time: e.target.value })}
+                  value={formData.eventTime}
+                  onChange={(e) => setFormData({ ...formData, eventTime: e.target.value })}
                   required
                 />
               </div>
@@ -274,21 +376,10 @@ export function EventsManager() {
                   onChange={(e) => setFormData({ ...formData, format: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg"
                 >
-                  <option>Онлайн</option>
-                  <option>Офлайн</option>
-                  <option>Гибрид</option>
+                  <option value="ONLINE">Онлайн</option>
+                  <option value="OFFLINE">Офлайн</option>
+                  <option value="HYBRID">Гибрид</option>
                 </select>
-              </div>
-              <div>
-                <Label htmlFor="attendees">Участников</Label>
-                <Input
-                  id="attendees"
-                  type="number"
-                  value={formData.attendees}
-                  onChange={(e) =>
-                    setFormData({ ...formData, attendees: Number(e.target.value) })
-                  }
-                />
               </div>
             </div>
 
@@ -324,6 +415,57 @@ export function EventsManager() {
                     </option>
                   ))}
                 </select>
+              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="registrationUrl">Ссылка на регистрацию</Label>
+              <Input
+                id="registrationUrl"
+                type="url"
+                value={formData.registrationUrl ?? ""}
+                onChange={(e) => setFormData({ ...formData, registrationUrl: e.target.value })}
+                placeholder="https://example.com/register"
+              />
+            </div>
+
+            <div>
+              <Label>Обложка события</Label>
+              <div className="mt-2 flex flex-col gap-3">
+                <div className="flex items-center gap-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isUploadingCover}
+                  >
+                    {isUploadingCover ? "Загрузка..." : "Загрузить обложку"}
+                  </Button>
+                  {formData.coverUrl && (
+                    <a
+                      href={formData.coverUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-blue-600 hover:underline"
+                    >
+                      Открыть в новой вкладке
+                    </a>
+                  )}
+                </div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleCoverUpload}
+                />
+                {formData.coverUrl && (
+                  <img
+                    src={formData.coverUrl}
+                    alt="Обложка"
+                    className="w-full h-48 object-cover rounded-lg"
+                  />
+                )}
               </div>
             </div>
 

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Image from "@tiptap/extension-image";
@@ -23,7 +23,7 @@ import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Textarea } from "../ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
-import { Post, PostRequest, postsApi, api } from "../../lib/api";
+import { Post, PostRequest, postsApi, api, settingsApi } from "../../lib/api";
 import { toast } from "sonner";
 
 interface PostEditorProps {
@@ -45,24 +45,28 @@ const sections = [
   "Авто и транспорт",
 ];
 
+const createInitialPostState = (): Partial<Post> => ({
+  title: "",
+  excerpt: "",
+  description: "",
+  content: "",
+  section: sections[0],
+  chapter: sections[0],
+  category: "",
+  topic: "",
+  author: "YoungWings",
+  tags: [],
+  status: "draft",
+});
+
 export function PostEditor({ postId, onSave, onCancel }: PostEditorProps) {
   const [showPreview, setShowPreview] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [post, setPost] = useState<Partial<Post>>({
-    title: "",
-    excerpt: "",
-    description: "",
-    content: "",
-    section: sections[0],
-    chapter: sections[0],
-    category: "",
-    topic: "",
-    author: "YoungWings",
-    tags: [],
-    status: "draft",
-  });
+  const [post, setPost] = useState<Partial<Post>>(() => createInitialPostState());
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>("");
+  const [topics, setTopics] = useState<string[]>([]);
+  const [initialContent, setInitialContent] = useState<string | null>(null);
 
   const editor = useEditor({
     extensions: [
@@ -75,48 +79,106 @@ export function PostEditor({ postId, onSave, onCancel }: PostEditorProps) {
     ],
     content: post.content || "",
     onUpdate: ({ editor }) => {
-      setPost({ ...post, content: editor.getJSON() as any });
+      setPost((prev) => ({ ...prev, content: editor.getJSON() as any }));
     },
   });
 
   useEffect(() => {
-    if (postId) {
-      loadPost();
-    }
-  }, [postId]);
+    const fetchTopics = async () => {
+      try {
+        const data = await settingsApi.getTopics();
+        setTopics(data);
+      } catch (error) {
+        console.error("Ошибка загрузки тем", error);
+      }
+    };
 
-  const loadPost = async () => {
+    fetchTopics();
+  }, []);
+
+  const loadPost = useCallback(async () => {
+    if (!postId) {
+      return;
+    }
+
     try {
-      const data = await postsApi.getById(postId!);
+      const data = await postsApi.getById(postId);
+      const normalizedTopic = (data.topic ?? data.category ?? "").trim();
+      const normalizedSection = (data.section ?? data.chapter ?? sections[0] ?? "").trim();
+      const sectionValue = normalizedSection || sections[0];
+      const chapterValue = (data.chapter ?? normalizedSection)?.trim() || sectionValue;
+      const descriptionValue = data.description ?? data.excerpt ?? "";
+      const excerptValue = data.excerpt ?? descriptionValue;
+
       setPost({
+        ...createInitialPostState(),
         ...data,
-        description: data.description ?? data.excerpt,
-        section: data.section ?? data.chapter,
-        chapter: data.chapter,
-        category: data.category ?? data.topic,
-        topic: data.topic,
+        description: descriptionValue,
+        excerpt: excerptValue,
+        section: sectionValue,
+        chapter: chapterValue,
+        category: data.category ?? normalizedTopic,
+        topic: normalizedTopic,
+        content: data.content ?? "",
+        tags: data.tags ?? [],
       });
+
+      setImageFile(null);
+
+      if (normalizedTopic) {
+        setTopics((prev) =>
+          prev.includes(normalizedTopic) ? prev : [normalizedTopic, ...prev]
+        );
+      }
+
       if (data.imageUrl) {
         setImagePreview(data.imageUrl);
       } else if (data.thumbnail) {
         setImagePreview(data.thumbnail);
+      } else {
+        setImagePreview("");
       }
-      if (editor) {
-        if (data.content) {
-          try {
-            const parsed = JSON.parse(data.content);
-            editor.commands.setContent(parsed);
-          } catch (error) {
-            editor.commands.setContent(data.content);
-          }
-        } else {
-          editor.commands.clearContent();
-        }
-      }
+
+      setInitialContent(data.content ?? "");
     } catch (error) {
+      console.error("Ошибка загрузки поста", error);
       toast.error("Ошибка загрузки поста");
     }
-  };
+  }, [postId]);
+
+  useEffect(() => {
+    if (postId) {
+      loadPost();
+    } else {
+      setPost(createInitialPostState());
+      setImageFile(null);
+      setImagePreview("");
+      setInitialContent("");
+    }
+  }, [postId, loadPost]);
+
+  useEffect(() => {
+    if (!editor) {
+      return;
+    }
+
+    if (initialContent === null) {
+      return;
+    }
+
+    if (initialContent.length > 0) {
+      try {
+        const parsed = JSON.parse(initialContent);
+        editor.commands.setContent(parsed);
+      } catch (error) {
+        editor.commands.setContent(initialContent);
+      }
+    } else {
+      editor.commands.clearContent();
+    }
+
+    setInitialContent(null);
+  }, [editor, initialContent]);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -131,14 +193,23 @@ export function PostEditor({ postId, onSave, onCancel }: PostEditorProps) {
   };
 
   const handleSave = async (status: "draft" | "published") => {
-    if (!post.title || !post.excerpt) {
+    const trimmedTitle = (post.title ?? "").trim();
+    const trimmedExcerpt = (post.excerpt ?? "").trim();
+    const trimmedTopic = (post.topic ?? post.category ?? "").trim();
+    const trimmedChapter = (post.section ?? post.chapter ?? "").trim();
+
+    if (!trimmedTitle || !trimmedExcerpt) {
       toast.error("Заполните обязательные поля");
       return;
     }
 
-    const chapter = (post.section ?? post.chapter ?? "").trim();
-    if (!chapter) {
+    if (!trimmedChapter) {
       toast.error("Выберите раздел поста");
+      return;
+    }
+
+    if (!trimmedTopic) {
+      toast.error("Укажите тему поста");
       return;
     }
 
@@ -151,6 +222,10 @@ export function PostEditor({ postId, onSave, onCancel }: PostEditorProps) {
         thumbnail = uploadResult.url;
       }
 
+      if (typeof thumbnail === "string") {
+        thumbnail = thumbnail.trim() || null;
+      }
+
       const contentJSON = editor?.getJSON();
       const contentString = contentJSON
         ? JSON.stringify(contentJSON)
@@ -158,12 +233,24 @@ export function PostEditor({ postId, onSave, onCancel }: PostEditorProps) {
           ? post.content
           : "";
 
+      const descriptionValue = (post.description ?? trimmedExcerpt).trim() || trimmedExcerpt;
+      const authorValue = (post.author ?? "YoungWings").trim() || "YoungWings";
+
+      if (trimmedTopic && !topics.includes(trimmedTopic)) {
+        try {
+          await settingsApi.addTopic(trimmedTopic);
+          setTopics((prev) => [trimmedTopic, ...prev]);
+        } catch (error) {
+          console.error("Ошибка добавления темы", error);
+        }
+      }
+
       const postPayload: PostRequest = {
-        title: post.title,
-        description: post.description ?? post.excerpt ?? "",
-        chapter,
-        topic: post.topic ?? post.category ?? "",
-        author: post.author ?? "YoungWings",
+        title: trimmedTitle,
+        description: descriptionValue,
+        chapter: trimmedChapter,
+        topic: trimmedTopic,
+        author: authorValue,
         content: contentString,
         thumbnail,
       };
@@ -384,6 +471,32 @@ export function PostEditor({ postId, onSave, onCancel }: PostEditorProps) {
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="topic">Тема *</Label>
+                <Input
+                  id="topic"
+                  value={post.topic ?? ""}
+                  onChange={(e) =>
+                    setPost({
+                      ...post,
+                      topic: e.target.value,
+                      category: e.target.value,
+                    })
+                  }
+                  list={topics.length > 0 ? "topics-list" : undefined}
+                  placeholder="Выберите или введите тему"
+                  className="mt-2"
+                  required
+                />
+                {topics.length > 0 && (
+                  <datalist id="topics-list">
+                    {topics.map((topic) => (
+                      <option key={topic} value={topic} />
+                    ))}
+                  </datalist>
+                )}
               </div>
 
               <div>
