@@ -85,11 +85,32 @@ class ApiClient {
       },
       body: formData,
     });
-    
+
     if (!response.ok) {
       throw new Error(`Upload Error: ${response.statusText}`);
     }
-    
+
+    return response.json();
+  }
+
+  async uploadFile(directory: string, file: File): Promise<{ url: string }> {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const token = localStorage.getItem('admin_token');
+    const tokenType = localStorage.getItem('admin_token_type') ?? 'Bearer';
+    const response = await fetch(`${this.baseUrl}${API_ENDPOINTS.FILES.UPLOAD(directory)}`, {
+      method: 'POST',
+      headers: {
+        ...(token && { Authorization: `${tokenType} ${token}` }),
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      throw new Error(`Upload Error: ${response.statusText}`);
+    }
+
     return response.json();
   }
 }
@@ -313,32 +334,34 @@ const DEFAULT_MOCK_EVENTS: Event[] = [
     title: 'Международная выставка молодых исследователей',
     description:
       'Двухдневная выставка проектов молодых ученых и инженеров с мастер-классами и нетворкингом.',
-    imageUrl:
-      'https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=800&q=80',
-    date: '2024-08-15',
-    time: '10:00',
+    eventDate: '2024-08-15',
+    eventTime: '10:00',
     location: 'Москва, ВДНХ',
-    format: 'Офлайн',
-    status: 'Предстоящее',
-    attendees: 250,
+    format: 'OFFLINE',
     region: 'Москва',
     sphere: 'Наука и технологии',
+    coverUrl:
+      'https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=800&q=80',
+    registrationUrl: 'https://example.com/register',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
   },
   {
     id: 'mock-event-2',
     title: 'Онлайн-форум социального предпринимательства',
     description:
       'Серия онлайн-дискуссий о лучших практиках социального предпринимательства и поддержке молодёжных инициатив.',
-    imageUrl:
-      'https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=800&q=80',
-    date: '2024-09-05',
-    time: '14:00',
+    eventDate: '2024-09-05',
+    eventTime: '14:00',
     location: 'Онлайн',
-    format: 'Онлайн',
-    status: 'Предстоящее',
-    attendees: 180,
+    format: 'ONLINE',
     region: 'Санкт-Петербург',
     sphere: 'Социальные проекты',
+    coverUrl:
+      'https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=800&q=80',
+    registrationUrl: 'https://example.com/register-online',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
   },
 ];
 
@@ -405,6 +428,22 @@ const generateMockId = () => {
   return `mock-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 };
 
+const mapApiEventToEvent = (event: any): Event => ({
+  id: event.id,
+  title: event.title,
+  description: event.description ?? '',
+  eventDate: event.eventDate ?? event.date ?? '',
+  eventTime: event.eventTime ?? event.time ?? '',
+  location: event.location ?? '',
+  format: event.format ?? '',
+  region: event.region ?? '',
+  sphere: event.sphere ?? '',
+  coverUrl: event.coverUrl ?? event.imageUrl ?? '',
+  registrationUrl: event.registrationUrl ?? '',
+  createdAt: event.createdAt,
+  updatedAt: event.updatedAt,
+});
+
 const fallbackEventsApi = {
   getAll: async (): Promise<Event[]> => {
     return loadMockCollection<Event>(MOCK_EVENTS_KEY, DEFAULT_MOCK_EVENTS);
@@ -423,19 +462,21 @@ const fallbackEventsApi = {
 
   create: async (event: Partial<Event>): Promise<Event> => {
     const events = loadMockCollection<Event>(MOCK_EVENTS_KEY, DEFAULT_MOCK_EVENTS);
+    const timestamp = new Date().toISOString();
     const newEvent: Event = {
       id: generateMockId(),
       title: event.title ?? 'Новое событие',
       description: event.description ?? '',
-      imageUrl: event.imageUrl ?? '',
-      date: event.date ?? new Date().toISOString().slice(0, 10),
-      time: event.time ?? '09:00',
+      eventDate: event.eventDate ?? new Date().toISOString().slice(0, 10),
+      eventTime: event.eventTime ?? '09:00',
       location: event.location ?? '',
-      format: event.format ?? 'Онлайн',
-      status: event.status ?? 'Предстоящее',
-      attendees: event.attendees ?? 0,
+      format: event.format ?? 'ONLINE',
       region: event.region ?? '',
       sphere: event.sphere ?? '',
+      coverUrl: event.coverUrl ?? '',
+      registrationUrl: event.registrationUrl ?? '',
+      createdAt: timestamp,
+      updatedAt: timestamp,
     };
 
     events.unshift(newEvent);
@@ -456,6 +497,7 @@ const fallbackEventsApi = {
       ...events[index],
       ...event,
       id,
+      updatedAt: new Date().toISOString(),
     };
 
     events[index] = updatedEvent;
@@ -477,11 +519,11 @@ export const eventsApi = {
       const data = await api.get<Event[] | { items: Event[] }>(API_ENDPOINTS.EVENTS.LIST);
 
       if (Array.isArray(data)) {
-        return data;
+        return data.map(mapApiEventToEvent);
       }
 
       if (data && Array.isArray((data as { items?: Event[] }).items)) {
-        return (data as { items: Event[] }).items;
+        return (data as { items: Event[] }).items.map(mapApiEventToEvent);
       }
 
       return fallbackEventsApi.getAll();
@@ -492,7 +534,8 @@ export const eventsApi = {
 
   getById: async (id: string) => {
     try {
-      return await api.get<Event>(API_ENDPOINTS.EVENTS.GET(id));
+      const data = await api.get<Event>(API_ENDPOINTS.EVENTS.GET(id));
+      return mapApiEventToEvent(data);
     } catch (error) {
       return fallbackEventsApi.getById(id);
     }
@@ -500,7 +543,21 @@ export const eventsApi = {
 
   create: async (event: Partial<Event>) => {
     try {
-      return await api.post<Event>(API_ENDPOINTS.EVENTS.CREATE, event);
+      const payload = {
+        title: event.title,
+        description: event.description,
+        eventDate: event.eventDate,
+        eventTime: event.eventTime,
+        location: event.location,
+        format: event.format,
+        region: event.region,
+        sphere: event.sphere,
+        coverUrl: event.coverUrl,
+        registrationUrl: event.registrationUrl,
+      };
+
+      const data = await api.post<Event>(API_ENDPOINTS.EVENTS.CREATE, payload);
+      return mapApiEventToEvent(data);
     } catch (error) {
       return fallbackEventsApi.create(event);
     }
@@ -508,7 +565,21 @@ export const eventsApi = {
 
   update: async (id: string, event: Partial<Event>) => {
     try {
-      return await api.put<Event>(API_ENDPOINTS.EVENTS.UPDATE(id), event);
+      const payload = {
+        title: event.title,
+        description: event.description,
+        eventDate: event.eventDate,
+        eventTime: event.eventTime,
+        location: event.location,
+        format: event.format,
+        region: event.region,
+        sphere: event.sphere,
+        coverUrl: event.coverUrl,
+        registrationUrl: event.registrationUrl,
+      };
+
+      const data = await api.put<Event>(API_ENDPOINTS.EVENTS.UPDATE(id), payload);
+      return mapApiEventToEvent(data);
     } catch (error) {
       return fallbackEventsApi.update(id, event);
     }
@@ -708,15 +779,16 @@ export interface Event {
   id: string;
   title: string;
   description: string;
-  imageUrl: string;
-  date: string; // ISO 8601 date string
-  time: string;
+  eventDate: string; // ISO 8601 date string
+  eventTime: string;
   location: string;
   format: string;
-  status: string;
-  attendees: number;
   region: string;
   sphere: string;
+  coverUrl?: string | null;
+  registrationUrl?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Translator {

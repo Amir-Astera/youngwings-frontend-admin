@@ -42,11 +42,11 @@ export const API_ENDPOINTS = {
   
   // События
   EVENTS: {
-    LIST: '/api/events',                               // GET - список событий
-    CREATE: '/api/events',                             // POST - создать событие
-    GET: (id: string) => `/api/events/${id}`,          // GET - получить событие
-    UPDATE: (id: string) => `/api/events/${id}`,       // PUT - обновить событие
-    DELETE: (id: string) => `/api/events/${id}`,       // DELETE - удалить событие
+    LIST: '/api/admin/events',                         // GET - список событий
+    CREATE: '/api/admin/events',                       // POST - создать событие
+    GET: (id: string) => `/api/admin/events/${id}`,    // GET - получить событие
+    UPDATE: (id: string) => `/api/admin/events/${id}`, // PUT - обновить событие
+    DELETE: (id: string) => `/api/admin/events/${id}`, // DELETE - удалить событие
   },
   
   // Переводчики
@@ -89,6 +89,9 @@ export const API_ENDPOINTS = {
 
   // Загрузка файлов
   UPLOAD: '/api/upload',  // POST - загрузить изображение (multipart/form-data)
+  FILES: {
+    UPLOAD: (directory: string) => `/api/files/${directory}`,
+  },
 };
 
 /**
