@@ -500,19 +500,6 @@ export function PostEditor({ postId, onSave, onCancel }: PostEditorProps) {
               </div>
 
               <div>
-                <Label htmlFor="tags">Теги (через запятую)</Label>
-                <Input
-                  id="tags"
-                  value={post.tags?.join(", ")}
-                  onChange={(e) =>
-                    setPost({ ...post, tags: e.target.value.split(",").map((t) => t.trim()) })
-                  }
-                  placeholder="AI, Стартапы, Инновации"
-                  className="mt-2"
-                />
-              </div>
-
-              <div>
                 <Label htmlFor="author">Автор</Label>
                 <Input
                   id="author"
