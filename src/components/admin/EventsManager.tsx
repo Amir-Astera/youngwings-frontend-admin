@@ -26,6 +26,7 @@ import {
 
 export function EventsManager() {
   const [events, setEvents] = useState<Event[]>([]);
+  const [eventsMeta, setEventsMeta] = useState({ total: 0, page: 1, size: 20 });
   const [regions, setRegions] = useState<string[]>([]);
   const [spheres, setSpheres] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -55,8 +56,9 @@ export function EventsManager() {
   const loadEvents = async () => {
     try {
       setIsLoading(true);
-      const data = await eventsApi.getAll();
-      setEvents(data);
+      const data = await eventsApi.getAll({ page: 1, size: 20 });
+      setEvents(data.items);
+      setEventsMeta({ total: data.total, page: data.page, size: data.size });
     } catch (error) {
       toast.error("Ошибка загрузки событий");
     } finally {
@@ -224,8 +226,11 @@ export function EventsManager() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl">Управление событиями</h1>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl">Управление событиями</h1>
+          <p className="text-sm text-gray-500 mt-1">Всего событий: {eventsMeta.total}</p>
+        </div>
         <Button
           className="bg-blue-600 hover:bg-blue-700"
           onClick={() => {

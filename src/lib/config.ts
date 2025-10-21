@@ -42,20 +42,20 @@ export const API_ENDPOINTS = {
   
   // События
   EVENTS: {
-    LIST: '/api/admin/events',                         // GET - список событий
+    LIST: '/api/events',                               // GET - список событий (пагинация)
     CREATE: '/api/admin/events',                       // POST - создать событие
     GET: (id: string) => `/api/admin/events/${id}`,    // GET - получить событие
     UPDATE: (id: string) => `/api/admin/events/${id}`, // PUT - обновить событие
     DELETE: (id: string) => `/api/admin/events/${id}`, // DELETE - удалить событие
   },
-  
+
   // Переводчики
   TRANSLATORS: {
-    LIST: '/api/translators',                                   // GET - список переводчиков
-    CREATE: '/api/translators',                                 // POST - создать переводчика
-    GET: (id: string) => `/api/translators/${id}`,              // GET - получить переводчика
-    UPDATE: (id: string) => `/api/translators/${id}`,           // PUT - обновить переводчика
-    DELETE: (id: string) => `/api/translators/${id}`,           // DELETE - удалить переводчика
+    LIST: '/api/translator-vacancies',                                   // GET - список переводчиков (вакансии)
+    CREATE: '/api/admin/translator-vacancies',                           // POST - создать переводчика
+    GET: (id: string) => `/api/translator-vacancies/${id}`,              // GET - получить переводчика
+    UPDATE: (id: string) => `/api/admin/translator-vacancies/${id}`,     // PUT - обновить переводчика
+    DELETE: (id: string) => `/api/admin/translator-vacancies/${id}`,     // DELETE - удалить переводчика
   },
 
   // Комментарии
@@ -70,16 +70,6 @@ export const API_ENDPOINTS = {
 
   // Настройки
   SETTINGS: {
-    REGIONS: {
-      LIST: '/api/settings/regions',
-      CREATE: '/api/settings/regions',
-      DELETE: (region: string) => `/api/settings/regions/${encodeURIComponent(region)}`,
-    },
-    SPHERES: {
-      LIST: '/api/settings/spheres',
-      CREATE: '/api/settings/spheres',
-      DELETE: (sphere: string) => `/api/settings/spheres/${encodeURIComponent(sphere)}`,
-    },
     TOPICS: {
       LIST: '/api/settings/topics',
       CREATE: '/api/settings/topics',
