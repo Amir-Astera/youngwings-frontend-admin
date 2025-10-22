@@ -4,6 +4,7 @@ import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Badge } from "../ui/badge";
 import { Post, postsApi } from "../../lib/api";
+import { resolveFileUrl } from "../../lib/files";
 import { PostEditor } from "./PostEditor";
 import { toast } from "sonner";
 import {
@@ -133,7 +134,8 @@ export function PostsManager() {
           <div className="text-center py-12 text-gray-500">Постов не найдено</div>
         ) : (
           filteredPosts.map((post) => {
-            const imageSrc = post.imageUrl || post.thumbnail || undefined;
+            const rawImage = post.imageUrl || post.thumbnail || undefined;
+            const imageSrc = resolveFileUrl(rawImage) ?? rawImage;
             const description = post.excerpt || post.description || "";
             const sectionLabel = post.section || post.chapter || "";
             const categoryLabel = post.category || post.topic || "—";

@@ -1,5 +1,6 @@
 // API Configuration
 import { API_BASE_URL, API_ENDPOINTS } from './config';
+import { resolveFileUrl } from './files';
 
 // API Client
 class ApiClient {
@@ -100,7 +101,8 @@ class ApiClient {
       if (payload && typeof payload === 'object') {
         const url = payload.url ?? payload.path ?? payload.location;
         if (typeof url === 'string' && url.length > 0) {
-          return { url };
+          const normalizedUrl = resolveFileUrl(url) ?? url;
+          return { url: normalizedUrl };
         }
       }
     } catch (error) {
@@ -278,16 +280,24 @@ interface ApiPaginatedResponse<T> {
   items: T[];
 }
 
-const mapApiPostToPost = (post: ApiPost): Post => ({
-  ...post,
-  thumbnail: post.thumbnail,
-  excerpt: post.description ?? '',
-  imageUrl: post.thumbnail ?? undefined,
-  category: post.topic ?? '',
-  section: post.chapter ?? '',
-  publishedAt: post.createdAt,
-  status: 'published',
-});
+const mapApiPostToPost = (post: ApiPost): Post => {
+  const rawThumbnail = typeof post.thumbnail === 'string' ? post.thumbnail.trim() : '';
+  const normalizedThumbnail = resolveFileUrl(rawThumbnail);
+
+  const thumbnailValue = normalizedThumbnail ?? (rawThumbnail || null);
+  const imageUrl = normalizedThumbnail ?? (rawThumbnail || undefined);
+
+  return {
+    ...post,
+    thumbnail: thumbnailValue,
+    excerpt: post.description ?? '',
+    imageUrl,
+    category: post.topic ?? '',
+    section: post.chapter ?? '',
+    publishedAt: post.createdAt,
+    status: 'published',
+  };
+};
 
 const applyPostListFilters = (
   posts: Post[],
@@ -504,21 +514,29 @@ const generateMockId = () => {
   return `mock-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 };
 
-const mapApiEventToEvent = (event: any): Event => ({
-  id: event.id,
-  title: event.title,
-  description: event.description ?? '',
-  eventDate: event.eventDate ?? event.date ?? '',
-  eventTime: event.eventTime ?? event.time ?? '',
-  location: event.location ?? '',
-  format: event.format ?? '',
-  region: event.region ?? '',
-  sphere: event.sphere ?? '',
-  coverUrl: event.coverUrl ?? event.imageUrl ?? '',
-  registrationUrl: event.registrationUrl ?? '',
-  createdAt: event.createdAt,
-  updatedAt: event.updatedAt,
-});
+const mapApiEventToEvent = (event: any): Event => {
+  const coverSource =
+    (typeof event.coverUrl === 'string' && event.coverUrl) ||
+    (typeof event.imageUrl === 'string' && event.imageUrl) ||
+    '';
+  const normalizedCover = resolveFileUrl(coverSource)?.trim() ?? coverSource.trim();
+
+  return {
+    id: event.id,
+    title: event.title,
+    description: event.description ?? '',
+    eventDate: event.eventDate ?? event.date ?? '',
+    eventTime: event.eventTime ?? event.time ?? '',
+    location: event.location ?? '',
+    format: event.format ?? '',
+    region: event.region ?? '',
+    sphere: event.sphere ?? '',
+    coverUrl: normalizedCover || undefined,
+    registrationUrl: event.registrationUrl ?? '',
+    createdAt: event.createdAt,
+    updatedAt: event.updatedAt,
+  };
+};
 
 interface ApiTranslatorVacancy {
   id: string;
@@ -534,19 +552,23 @@ interface ApiTranslatorVacancy {
   updatedAt: string;
 }
 
-const mapApiTranslatorToTranslator = (translator: ApiTranslatorVacancy): Translator => ({
-  id: translator.id,
-  fullName: translator.fullName,
-  languages: translator.languages ?? '',
-  specialization: translator.specialization ?? '',
-  experience: translator.experience ?? '',
-  location: translator.location ?? '',
-  qrUrl: translator.qrUrl ?? '',
-  nickname: translator.nickname ?? '',
-  version: translator.version ?? 0,
-  createdAt: translator.createdAt ?? '',
-  updatedAt: translator.updatedAt ?? '',
-});
+const mapApiTranslatorToTranslator = (translator: ApiTranslatorVacancy): Translator => {
+  const normalizedQrUrl = resolveFileUrl(translator.qrUrl) ?? translator.qrUrl ?? '';
+
+  return {
+    id: translator.id,
+    fullName: translator.fullName,
+    languages: translator.languages ?? '',
+    specialization: translator.specialization ?? '',
+    experience: translator.experience ?? '',
+    location: translator.location ?? '',
+    qrUrl: normalizedQrUrl,
+    nickname: translator.nickname ?? '',
+    version: translator.version ?? 0,
+    createdAt: translator.createdAt ?? '',
+    updatedAt: translator.updatedAt ?? '',
+  };
+};
 
 const trimValue = (value: unknown): string =>
   typeof value === 'string' ? value.trim() : '';

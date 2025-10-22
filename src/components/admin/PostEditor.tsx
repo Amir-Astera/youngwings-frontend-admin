@@ -24,6 +24,7 @@ import { Label } from "../ui/label";
 import { Textarea } from "../ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { Post, PostRequest, postsApi, api, settingsApi } from "../../lib/api";
+import { resolveFileUrl } from "../../lib/files";
 import { toast } from "sonner";
 
 interface PostEditorProps {
@@ -129,13 +130,11 @@ export function PostEditor({ postId, onSave, onCancel }: PostEditorProps) {
         );
       }
 
-      if (data.imageUrl) {
-        setImagePreview(data.imageUrl);
-      } else if (data.thumbnail) {
-        setImagePreview(data.thumbnail);
-      } else {
-        setImagePreview("");
-      }
+      const previewSource = data.imageUrl ?? data.thumbnail ?? undefined;
+      const previewUrl =
+        resolveFileUrl(previewSource) ?? data.imageUrl ?? data.thumbnail ?? "";
+
+      setImagePreview(previewUrl);
 
       setInitialContent(data.content ?? "");
     } catch (error) {
@@ -193,7 +192,7 @@ export function PostEditor({ postId, onSave, onCancel }: PostEditorProps) {
     try {
       setIsUploadingImage(true);
       const uploadResult = await api.uploadFile("ASSETS", file);
-      const uploadedUrl = uploadResult.url;
+      const uploadedUrl = resolveFileUrl(uploadResult.url) ?? uploadResult.url;
 
       setPost((prev) => ({
         ...prev,

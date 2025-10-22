@@ -21,12 +21,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "../ui/alert-dialog";
-import { API_BASE_URL } from "../../lib/config";
 import {
   Translator,
   TranslatorRequest,
   translatorsApi,
 } from "../../lib/api";
+import { resolveFileUrl } from "../../lib/files";
 
 const emptyForm: TranslatorRequest = {
   fullName: "",
@@ -68,18 +68,6 @@ const formatDateTime = (value: string) => {
     hour: "2-digit",
     minute: "2-digit",
   });
-};
-
-const buildFileUrl = (path: string) => {
-  if (!path) {
-    return "";
-  }
-
-  if (path.startsWith("http://") || path.startsWith("https://")) {
-    return path;
-  }
-
-  return `${API_BASE_URL}${path}`;
 };
 
 export function TranslatorsManager() {
@@ -299,7 +287,7 @@ export function TranslatorsManager() {
           translators.map((translator) => {
             const languages = splitValues(translator.languages);
             const specializations = splitValues(translator.specialization);
-            const qrLink = buildFileUrl(translator.qrUrl);
+            const qrLink = resolveFileUrl(translator.qrUrl) ?? translator.qrUrl;
 
             return (
               <div
