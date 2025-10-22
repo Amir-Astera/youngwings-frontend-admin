@@ -6,6 +6,17 @@ const ensureLeadingSlash = (value: string) => (value.startsWith('/') ? value : `
 
 const FILES_PREFIX = '/api/files/';
 const THUMBNAIL_PREFIX = '/api/files/thumbnail/';
+
+const ensureAssetsSegmentUppercase = (path: string): string => {
+  if (!path) {
+    return path;
+  }
+
+  return path.replace(
+    /(\/?api\/files(?:\/thumbnail)?\/)(assets)(?=\/)/gi,
+    (_match, prefix: string) => `${prefix}ASSETS`
+  );
+};
 const API_ORIGIN = (() => {
   try {
     return new URL(API_BASE_URL).origin;
@@ -25,32 +36,34 @@ const normalizeFilePath = (value: string): string => {
     }
 
     if (path.startsWith(THUMBNAIL_PREFIX)) {
-      return path;
+      return ensureAssetsSegmentUppercase(path);
     }
 
     if (path.startsWith(FILES_PREFIX)) {
-      return path.replace(FILES_PREFIX, THUMBNAIL_PREFIX);
+      return ensureAssetsSegmentUppercase(path.replace(FILES_PREFIX, THUMBNAIL_PREFIX));
     }
 
     const trimmedPath = path.replace(/^\/+/, '');
 
     if (trimmedPath.startsWith('api/files/thumbnail/')) {
-      return ensureLeadingSlash(trimmedPath);
+      return ensureAssetsSegmentUppercase(ensureLeadingSlash(trimmedPath));
     }
 
     if (trimmedPath.startsWith('api/files/')) {
-      return ensureLeadingSlash(
-        trimmedPath.replace('api/files/', 'api/files/thumbnail/')
+      return ensureAssetsSegmentUppercase(
+        ensureLeadingSlash(
+          trimmedPath.replace('api/files/', 'api/files/thumbnail/')
+        )
       );
     }
 
     const looksLikeFilePath = /\.[^./]+$/.test(trimmedPath);
 
     if (looksLikeFilePath && !trimmedPath.startsWith('api/')) {
-      return `${THUMBNAIL_PREFIX}${trimmedPath}`;
+      return ensureAssetsSegmentUppercase(`${THUMBNAIL_PREFIX}${trimmedPath}`);
     }
 
-    return path;
+    return ensureAssetsSegmentUppercase(path);
   };
 
   if (isAbsoluteUrl(value)) {
@@ -68,18 +81,22 @@ const normalizeFilePath = (value: string): string => {
         url.pathname.startsWith(FILES_PREFIX) &&
         !url.pathname.startsWith(THUMBNAIL_PREFIX)
       ) {
-        url.pathname = url.pathname.replace(FILES_PREFIX, THUMBNAIL_PREFIX);
+        url.pathname = ensureAssetsSegmentUppercase(
+          url.pathname.replace(FILES_PREFIX, THUMBNAIL_PREFIX)
+        );
         return url.toString();
       }
 
-      return value;
+      return ensureAssetsSegmentUppercase(value);
     } catch (error) {
-      return value;
+      return ensureAssetsSegmentUppercase(value);
     }
   }
 
   if (value.includes(FILES_PREFIX) && !value.includes(THUMBNAIL_PREFIX)) {
-    return value.replace(FILES_PREFIX, THUMBNAIL_PREFIX);
+    return ensureAssetsSegmentUppercase(
+      value.replace(FILES_PREFIX, THUMBNAIL_PREFIX)
+    );
   }
 
   return insertThumbnailSegment(value);
