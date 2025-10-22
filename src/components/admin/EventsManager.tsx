@@ -5,6 +5,7 @@ import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Textarea } from "../ui/textarea";
 import { api, Event, eventsApi, settingsApi } from "../../lib/api";
+import { resolveFileUrl } from "../../lib/files";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -47,6 +48,9 @@ export function EventsManager() {
   });
   const [isUploadingCover, setIsUploadingCover] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const coverPreviewUrl =
+    resolveFileUrl(formData.coverUrl ?? undefined) ?? (formData.coverUrl?.trim() ?? "");
 
   useEffect(() => {
     loadEvents();
@@ -207,9 +211,9 @@ export function EventsManager() {
     try {
       setIsUploadingCover(true);
       const uploadResult = await api.uploadFile("ASSETS", file);
-      const uploadedUrl = uploadResult.url;
+      const uploadedUrl = resolveFileUrl(uploadResult.url) ?? uploadResult.url;
 
-      setFormData((prev) => ({ ...prev, coverUrl: uploadedUrl }));
+      setFormData((prev) => ({ ...prev, coverUrl: uploadedUrl || "" }));
       toast.success("Обложка загружена");
     } catch (error) {
       console.error(error);
@@ -250,56 +254,60 @@ export function EventsManager() {
         ) : events.length === 0 ? (
           <div className="text-center py-12 text-gray-500">События и выставки не найдены</div>
         ) : (
-          events.map((event) => (
-            <div
-              key={event.id}
-              className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm"
-            >
-              <div className="flex gap-4">
-                {event.coverUrl && (
-                  <img
-                    src={event.coverUrl}
-                    alt={event.title}
-                    className="w-32 h-24 object-cover rounded-lg"
-                  />
-                )}
-                <div className="flex-1">
-                  <h3 className="text-lg mb-2">{event.title}</h3>
-                  <p className="text-sm text-gray-600 mb-3 line-clamp-2">
-                    {event.description}
-                  </p>
-                  <div className="flex items-center gap-4 text-sm text-gray-500 mb-3">
-                    <span>{event.eventDate}</span>
-                    {event.eventTime && (
-                      <>
-                        <span>·</span>
-                        <span>{event.eventTime}</span>
-                      </>
-                    )}
-                    <span>·</span>
-                    <span>{event.location}</span>
-                    <span>·</span>
-                    <span>{event.format}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button variant="outline" size="sm" onClick={() => handleEdit(event)}>
-                      <Edit className="w-4 h-4 mr-1" />
-                      Редактировать
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                      onClick={() => setDeleteEventId(event.id)}
-                    >
-                      <Trash2 className="w-4 h-4 mr-1" />
-                      Удалить
-                    </Button>
+          events.map((event) => {
+            const coverSrc = resolveFileUrl(event.coverUrl ?? undefined) ?? event.coverUrl ?? undefined;
+
+            return (
+              <div
+                key={event.id}
+                className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm"
+              >
+                <div className="flex gap-4">
+                  {coverSrc && (
+                    <img
+                      src={coverSrc}
+                      alt={event.title}
+                      className="w-32 h-24 object-cover rounded-lg"
+                    />
+                  )}
+                  <div className="flex-1">
+                    <h3 className="text-lg mb-2">{event.title}</h3>
+                    <p className="text-sm text-gray-600 mb-3 line-clamp-2">
+                      {event.description}
+                    </p>
+                    <div className="flex items-center gap-4 text-sm text-gray-500 mb-3">
+                      <span>{event.eventDate}</span>
+                      {event.eventTime && (
+                        <>
+                          <span>·</span>
+                          <span>{event.eventTime}</span>
+                        </>
+                      )}
+                      <span>·</span>
+                      <span>{event.location}</span>
+                      <span>·</span>
+                      <span>{event.format}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button variant="outline" size="sm" onClick={() => handleEdit(event)}>
+                        <Edit className="w-4 h-4 mr-1" />
+                        Редактировать
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        onClick={() => setDeleteEventId(event.id)}
+                      >
+                        <Trash2 className="w-4 h-4 mr-1" />
+                        Удалить
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
 
@@ -446,9 +454,9 @@ export function EventsManager() {
                   >
                     {isUploadingCover ? "Загрузка..." : "Загрузить обложку"}
                   </Button>
-                  {formData.coverUrl && (
+                  {coverPreviewUrl && (
                     <a
-                      href={formData.coverUrl}
+                      href={coverPreviewUrl}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-sm text-blue-600 hover:underline"
@@ -464,9 +472,9 @@ export function EventsManager() {
                   className="hidden"
                   onChange={handleCoverUpload}
                 />
-                {formData.coverUrl && (
+                {coverPreviewUrl && (
                   <img
-                    src={formData.coverUrl}
+                    src={coverPreviewUrl}
                     alt="Обложка"
                     className="w-full h-48 object-cover rounded-lg"
                   />
