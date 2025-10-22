@@ -47,7 +47,11 @@ function StatCard({ title, value, icon, trend }: StatCardProps) {
         <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
           {icon}
         </div>
-        {trend && <span className="text-sm text-blue-600 font-medium">{trend}</span>}
+        {trend && (
+          <span className="text-sm text-blue-600 font-medium stat-card-trend">
+            {trend}
+          </span>
+        )}
       </div>
       <div className="text-2xl mb-1">{value}</div>
       <div className="text-sm text-gray-600">{title}</div>
