@@ -476,7 +476,7 @@ export function TranslatorsManager() {
                   id="qrUrl"
                   value={formData.qrUrl}
                   onChange={(event) => setFormData({ ...formData, qrUrl: event.target.value })}
-                  placeholder="/api/files/qr/..."
+                placeholder="/api/files/thumbnail/qr/..."
                   required
                 />
               </div>
