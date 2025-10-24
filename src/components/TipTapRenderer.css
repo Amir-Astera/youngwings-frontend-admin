@@ -1,8 +1,15 @@
-.tiptap-renderer {
+.tiptap-renderer,
+.tiptap-editor {
+  --tiptap-image-max-width: min(100%, 720px);
+  --tiptap-image-max-height: min(80vh, 900px);
+  --tiptap-image-margin-y: 1.5rem;
+  --tiptap-image-border-radius: 1rem;
+  --tiptap-image-shadow: 0 20px 45px rgba(15, 23, 42, 0.08);
   width: 100%;
 }
 
-.tiptap-renderer .tiptap-renderer-content {
+.tiptap-renderer .tiptap-renderer-content,
+.tiptap-editor {
   color: #111827;
   line-height: 1.75;
 }
@@ -93,53 +100,71 @@
 }
 
 .tiptap-renderer .tiptap-renderer-content [style*="text-align:center"],
-.tiptap-renderer .tiptap-renderer-content [style*="text-align: center"] {
+.tiptap-renderer .tiptap-renderer-content [style*="text-align: center"],
+.tiptap-editor [style*="text-align:center"],
+.tiptap-editor [style*="text-align: center"] {
   text-align: center !important;
 }
 
 .tiptap-renderer .tiptap-renderer-content [style*="text-align:right"],
-.tiptap-renderer .tiptap-renderer-content [style*="text-align: right"] {
+.tiptap-renderer .tiptap-renderer-content [style*="text-align: right"],
+.tiptap-editor [style*="text-align:right"],
+.tiptap-editor [style*="text-align: right"] {
   text-align: right !important;
 }
 
 .tiptap-renderer .tiptap-renderer-content [style*="text-align:justify"],
-.tiptap-renderer .tiptap-renderer-content [style*="text-align: justify"] {
+.tiptap-renderer .tiptap-renderer-content [style*="text-align: justify"],
+.tiptap-editor [style*="text-align:justify"],
+.tiptap-editor [style*="text-align: justify"] {
   text-align: justify !important;
 }
 
-.tiptap-renderer .tiptap-renderer-content img {
+.tiptap-renderer .tiptap-renderer-content img,
+.tiptap-editor img {
   display: block;
-  max-width: min(100%, 720px);
-  width: auto;
-  height: auto;
-  border-radius: 1rem;
-  margin: 1.5rem 0;
-  box-shadow: 0 20px 45px rgba(15, 23, 42, 0.08);
+  width: auto !important;
+  max-width: var(--tiptap-image-max-width);
+  height: auto !important;
+  max-height: var(--tiptap-image-max-height);
+  border-radius: var(--tiptap-image-border-radius);
+  margin: var(--tiptap-image-margin-y) auto;
+  box-shadow: var(--tiptap-image-shadow);
+  object-fit: contain;
 }
 
 .tiptap-renderer .tiptap-renderer-content img[style*="text-align:left"],
-.tiptap-renderer .tiptap-renderer-content img[style*="text-align: left"] {
+.tiptap-renderer .tiptap-renderer-content img[style*="text-align: left"],
+.tiptap-editor img[style*="text-align:left"],
+.tiptap-editor img[style*="text-align: left"] {
   margin-right: auto;
   margin-left: 0;
 }
 
 .tiptap-renderer .tiptap-renderer-content img[style*="text-align:center"],
-.tiptap-renderer .tiptap-renderer-content img[style*="text-align: center"] {
+.tiptap-renderer .tiptap-renderer-content img[style*="text-align: center"],
+.tiptap-editor img[style*="text-align:center"],
+.tiptap-editor img[style*="text-align: center"] {
   margin-left: auto;
   margin-right: auto;
 }
 
 .tiptap-renderer .tiptap-renderer-content img[style*="text-align:right"],
-.tiptap-renderer .tiptap-renderer-content img[style*="text-align: right"] {
+.tiptap-renderer .tiptap-renderer-content img[style*="text-align: right"],
+.tiptap-editor img[style*="text-align:right"],
+.tiptap-editor img[style*="text-align: right"] {
   margin-left: auto;
   margin-right: 0;
 }
 
-.tiptap-renderer .tiptap-renderer-content figure {
-  margin: 1.5rem 0;
+.tiptap-renderer .tiptap-renderer-content figure,
+.tiptap-editor figure {
+  margin: var(--tiptap-image-margin-y) auto;
+  max-width: var(--tiptap-image-max-width);
 }
 
-.tiptap-renderer .tiptap-renderer-content figure figcaption {
+.tiptap-renderer .tiptap-renderer-content figure figcaption,
+.tiptap-editor figure figcaption {
   text-align: center;
   font-size: 0.9em;
   color: #4b5563;
