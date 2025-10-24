@@ -8,6 +8,8 @@ import Highlight from "@tiptap/extension-highlight";
 import { FontFamily } from "../lib/tiptap/fontFamily";
 import { useEffect } from "react";
 
+import "./TipTapRenderer.css";
+
 interface TipTapRendererProps {
   content: string;
 }
@@ -35,7 +37,7 @@ export function TipTapRenderer({ content }: TipTapRendererProps) {
     editorProps: {
       attributes: {
         class:
-          "prose prose-sm max-w-none focus:outline-none tiptap-content tiptap-editor",
+          "prose prose-sm max-w-none focus:outline-none tiptap-content tiptap-editor tiptap-renderer-content",
       },
     },
   });
