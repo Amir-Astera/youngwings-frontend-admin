@@ -487,6 +487,7 @@ const removeFromMockCollection = (key: string, defaults: string[], value: string
 
 const MOCK_REGIONS_KEY = 'admin_mock_regions';
 const MOCK_SPHERES_KEY = 'admin_mock_spheres';
+const MOCK_TOPICS_KEY = 'admin_mock_topics';
 
 const DEFAULT_MOCK_REGIONS = [
   'Республика Казахстан',
@@ -504,6 +505,14 @@ const DEFAULT_MOCK_SPHERES = [
   'Социальные инновации',
   'Технологическое развитие',
   'Городская устойчивость',
+];
+
+const DEFAULT_MOCK_TOPICS = [
+  'Устойчивое развитие в Центральной Азии',
+  'Зеленые технологии',
+  'Экологические стартапы',
+  'Городская мобильность',
+  'Социальные инициативы',
 ];
 
 const generateMockId = () => {
@@ -883,7 +892,25 @@ export const settingsApi = {
   },
 
   getTopics: async () => {
-    return api.get<string[]>(API_ENDPOINTS.SETTINGS.TOPICS.LIST);
+    try {
+      const response = await api.get<string[]>(API_ENDPOINTS.SETTINGS.TOPICS.LIST);
+      const normalizedTopics = Array.isArray(response)
+        ? response
+            .filter((topic) => typeof topic === 'string')
+            .map((topic) => topic.trim())
+            .filter((topic) => topic.length > 0)
+        : [];
+
+      if (normalizedTopics.length > 0) {
+        saveMockCollection(MOCK_TOPICS_KEY, normalizedTopics);
+        return normalizedTopics;
+      }
+
+      return loadMockCollection<string>(MOCK_TOPICS_KEY, DEFAULT_MOCK_TOPICS);
+    } catch (error) {
+      console.warn('Failed to load topics from API, falling back to local data', error);
+      return loadMockCollection<string>(MOCK_TOPICS_KEY, DEFAULT_MOCK_TOPICS);
+    }
   },
 
   addRegion: async (region: string) => {
@@ -895,7 +922,19 @@ export const settingsApi = {
   },
 
   addTopic: async (topic: string) => {
-    return api.post<string>(API_ENDPOINTS.SETTINGS.TOPICS.CREATE, { topic });
+    const trimmedTopic = topic.trim();
+    if (!trimmedTopic) {
+      return trimmedTopic;
+    }
+
+    try {
+      await api.post<string>(API_ENDPOINTS.SETTINGS.TOPICS.CREATE, { topic: trimmedTopic });
+    } catch (error) {
+      console.warn('Failed to add topic via API, storing locally instead', error);
+    }
+
+    addToMockCollection(MOCK_TOPICS_KEY, DEFAULT_MOCK_TOPICS, trimmedTopic);
+    return trimmedTopic;
   },
 
   deleteRegion: async (region: string) => {
@@ -907,7 +946,18 @@ export const settingsApi = {
   },
 
   deleteTopic: async (topic: string) => {
-    return api.delete<void>(API_ENDPOINTS.SETTINGS.TOPICS.DELETE(topic));
+    const trimmedTopic = topic.trim();
+    if (!trimmedTopic) {
+      return;
+    }
+
+    try {
+      await api.delete<void>(API_ENDPOINTS.SETTINGS.TOPICS.DELETE(trimmedTopic));
+    } catch (error) {
+      console.warn('Failed to delete topic via API, removing locally instead', error);
+    }
+
+    removeFromMockCollection(MOCK_TOPICS_KEY, DEFAULT_MOCK_TOPICS, trimmedTopic);
   },
 };
 

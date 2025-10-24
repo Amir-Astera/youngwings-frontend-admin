@@ -52,6 +52,8 @@ const sections = [
   "Авто и транспорт",
 ];
 
+const DEFAULT_FONT_VALUE = "system";
+
 const createInitialPostState = (): Partial<Post> => ({
   title: "",
   excerpt: "",
@@ -78,7 +80,7 @@ export function PostEditor({ postId, onSave, onCancel }: PostEditorProps) {
   const editorImageInputRef = useRef<HTMLInputElement | null>(null);
 
   const fontFamilies = [
-    { label: "Стандартный", value: "" },
+    { label: "Стандартный", value: DEFAULT_FONT_VALUE },
     { label: "Inter", value: "Inter, sans-serif" },
     { label: "Merriweather", value: "Merriweather, serif" },
     { label: "Roboto Mono", value: "Roboto Mono, monospace" },
@@ -365,6 +367,14 @@ export function PostEditor({ postId, onSave, onCancel }: PostEditorProps) {
 
   if (!editor) return null;
 
+  const editorFontFamily = (
+    editor.getAttributes("fontFamily").fontFamily as string | undefined
+  )?.trim();
+  const selectedFontFamily =
+    editorFontFamily && editorFontFamily.length > 0
+      ? editorFontFamily
+      : DEFAULT_FONT_VALUE;
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -525,13 +535,13 @@ export function PostEditor({ postId, onSave, onCancel }: PostEditorProps) {
                 </Button>
                 <div className="w-px h-6 bg-gray-200 mx-1" />
                 <Select
-                  value={editor.getAttributes("fontFamily").fontFamily ?? ""}
+                  value={selectedFontFamily}
                   onValueChange={(value) => {
                     const chain = editor.chain().focus();
-                    if (value) {
-                      chain.setFontFamily(value).run();
-                    } else {
+                    if (value === DEFAULT_FONT_VALUE) {
                       chain.unsetFontFamily().run();
+                    } else {
+                      chain.setFontFamily(value).run();
                     }
                   }}
                 >
@@ -540,8 +550,13 @@ export function PostEditor({ postId, onSave, onCancel }: PostEditorProps) {
                   </SelectTrigger>
                   <SelectContent align="end">
                     {fontFamilies.map((font) => (
-                      <SelectItem key={font.value || "default"} value={font.value}>
-                        <span style={{ fontFamily: font.value || undefined }}>
+                      <SelectItem key={font.value} value={font.value}>
+                        <span
+                          style={{
+                            fontFamily:
+                              font.value === DEFAULT_FONT_VALUE ? undefined : font.value,
+                          }}
+                        >
                           {font.label}
                         </span>
                       </SelectItem>
