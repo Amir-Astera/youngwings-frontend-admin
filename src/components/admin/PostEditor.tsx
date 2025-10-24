@@ -33,6 +33,8 @@ import { Post, PostRequest, postsApi, api, settingsApi } from "../../lib/api";
 import { resolveFileUrl } from "../../lib/files";
 import { toast } from "sonner";
 
+import "../TipTapRenderer.css";
+
 interface PostEditorProps {
   postId?: string;
   onSave?: () => void;
