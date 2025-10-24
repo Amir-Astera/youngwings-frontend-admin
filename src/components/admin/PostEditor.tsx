@@ -1,22 +1,28 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Image from "@tiptap/extension-image";
 import Link from "@tiptap/extension-link";
 import Underline from "@tiptap/extension-underline";
-import { 
-  Bold, 
+import TextAlign from "@tiptap/extension-text-align";
+import Highlight from "@tiptap/extension-highlight";
+import { FontFamily } from "../../lib/tiptap/fontFamily";
+import {
+  Bold,
   Italic,
   Underline as UnderlineIcon,
-  List, 
-  ListOrdered, 
-  Quote, 
-  Undo, 
-  Redo, 
+  List,
+  ListOrdered,
+  Quote,
+  Undo,
+  Redo,
   Image as ImageIcon,
   Link as LinkIcon,
   Eye,
-  Save
+  Save,
+  AlignLeft,
+  AlignCenter,
+  AlignRight
 } from "lucide-react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
@@ -68,6 +74,15 @@ export function PostEditor({ postId, onSave, onCancel }: PostEditorProps) {
   const [topics, setTopics] = useState<string[]>([]);
   const [initialContent, setInitialContent] = useState<string | null>(null);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [isUploadingEditorImage, setIsUploadingEditorImage] = useState(false);
+  const editorImageInputRef = useRef<HTMLInputElement | null>(null);
+
+  const fontFamilies = [
+    { label: "Стандартный", value: "" },
+    { label: "Inter", value: "Inter, sans-serif" },
+    { label: "Merriweather", value: "Merriweather, serif" },
+    { label: "Roboto Mono", value: "Roboto Mono, monospace" },
+  ];
 
   const editor = useEditor({
     extensions: [
@@ -77,10 +92,21 @@ export function PostEditor({ postId, onSave, onCancel }: PostEditorProps) {
         openOnClick: false,
       }),
       Underline,
+      TextAlign.configure({
+        types: ["heading", "paragraph", "image"],
+      }),
+      Highlight,
+      FontFamily,
     ],
     content: post.content || "",
     onUpdate: ({ editor }) => {
       setPost((prev) => ({ ...prev, content: editor.getJSON() as any }));
+    },
+    editorProps: {
+      attributes: {
+        class:
+          "prose prose-sm max-w-none focus:outline-none tiptap-editor [&_[style*=font-family]]:leading-relaxed",
+      },
     },
   });
 
@@ -292,10 +318,41 @@ export function PostEditor({ postId, onSave, onCancel }: PostEditorProps) {
     }
   };
 
-  const addImage = () => {
-    const url = prompt("Введите URL изображения:");
-    if (url && editor) {
-      editor.chain().focus().setImage({ src: url }).run();
+  const triggerEditorImageUpload = () => {
+    editorImageInputRef.current?.click();
+  };
+
+  const handleEditorImageUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = event.target.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    try {
+      setIsUploadingEditorImage(true);
+      const uploadResult = await api.uploadFile("ASSETS", file);
+      const uploadedUrl = resolveFileUrl(uploadResult.url) ?? uploadResult.url;
+
+      editor
+        ?.chain()
+        .focus()
+        .setImage({ src: uploadedUrl })
+        .setTextAlign("center")
+        .run();
+
+      toast.success("Изображение добавлено в контент");
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Не удалось загрузить изображение"
+      );
+    } finally {
+      setIsUploadingEditorImage(false);
+      event.target.value = "";
     }
   };
 
@@ -386,7 +443,7 @@ export function PostEditor({ postId, onSave, onCancel }: PostEditorProps) {
             {/* TipTap Editor */}
             <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
               {/* Toolbar */}
-              <div className="border-b border-gray-200 p-2 flex flex-wrap gap-1">
+              <div className="border-b border-gray-200 p-2 flex flex-wrap gap-1 items-center">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -436,7 +493,68 @@ export function PostEditor({ postId, onSave, onCancel }: PostEditorProps) {
                   <Quote className="w-4 h-4" />
                 </Button>
                 <div className="w-px h-6 bg-gray-200 mx-1" />
-                <Button variant="ghost" size="sm" onClick={addImage}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => editor.chain().focus().setTextAlign("left").run()}
+                  className={
+                    editor.isActive({ textAlign: "left" }) ? "bg-gray-100" : ""
+                  }
+                >
+                  <AlignLeft className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => editor.chain().focus().setTextAlign("center").run()}
+                  className={
+                    editor.isActive({ textAlign: "center" }) ? "bg-gray-100" : ""
+                  }
+                >
+                  <AlignCenter className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => editor.chain().focus().setTextAlign("right").run()}
+                  className={
+                    editor.isActive({ textAlign: "right" }) ? "bg-gray-100" : ""
+                  }
+                >
+                  <AlignRight className="w-4 h-4" />
+                </Button>
+                <div className="w-px h-6 bg-gray-200 mx-1" />
+                <Select
+                  value={editor.getAttributes("fontFamily").fontFamily ?? ""}
+                  onValueChange={(value) => {
+                    const chain = editor.chain().focus();
+                    if (value) {
+                      chain.setFontFamily(value).run();
+                    } else {
+                      chain.unsetFontFamily().run();
+                    }
+                  }}
+                >
+                  <SelectTrigger className="h-8 w-[160px] text-xs">
+                    <SelectValue placeholder="Шрифт" />
+                  </SelectTrigger>
+                  <SelectContent align="end">
+                    {fontFamilies.map((font) => (
+                      <SelectItem key={font.value || "default"} value={font.value}>
+                        <span style={{ fontFamily: font.value || undefined }}>
+                          {font.label}
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <div className="w-px h-6 bg-gray-200 mx-1" />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={triggerEditorImageUpload}
+                  disabled={isUploadingEditorImage}
+                >
                   <ImageIcon className="w-4 h-4" />
                 </Button>
                 <Button variant="ghost" size="sm" onClick={addLink}>
@@ -460,8 +578,15 @@ export function PostEditor({ postId, onSave, onCancel }: PostEditorProps) {
               </div>
 
               {/* Editor Content */}
-              <div className="p-6 min-h-[400px] prose prose-sm max-w-none">
-                <EditorContent editor={editor} />
+              <div className="p-6 min-h-[400px]">
+                <EditorContent editor={editor} className="tiptap-editor" />
+                <input
+                  ref={editorImageInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleEditorImageUpload}
+                />
               </div>
             </div>
           </div>
@@ -579,7 +704,7 @@ export function PostEditor({ postId, onSave, onCancel }: PostEditorProps) {
               <p className="text-gray-600 mb-4">{post.excerpt}</p>
 
               <div className="prose prose-sm max-w-none">
-                <EditorContent editor={editor} />
+                <EditorContent editor={editor} className="tiptap-editor" />
               </div>
             </div>
           </div>

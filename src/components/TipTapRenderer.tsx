@@ -5,6 +5,7 @@ import Link from "@tiptap/extension-link";
 import Underline from "@tiptap/extension-underline";
 import TextAlign from "@tiptap/extension-text-align";
 import Highlight from "@tiptap/extension-highlight";
+import { FontFamily } from "../lib/tiptap/fontFamily";
 import { useEffect } from "react";
 
 interface TipTapRendererProps {
@@ -24,15 +25,17 @@ export function TipTapRenderer({ content }: TipTapRendererProps) {
       }),
       Underline,
       TextAlign.configure({
-        types: ["heading", "paragraph"],
+        types: ["heading", "paragraph", "image"],
       }),
       Highlight,
+      FontFamily,
     ],
     content: "",
     editable: false,
     editorProps: {
       attributes: {
-        class: "prose prose-sm max-w-none focus:outline-none tiptap-content",
+        class:
+          "prose prose-sm max-w-none focus:outline-none tiptap-content tiptap-editor",
       },
     },
   });
