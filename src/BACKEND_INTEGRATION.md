@@ -137,7 +137,7 @@ GET /api/posts?section=Технологии и инновации&page=1&limit=1
       "category": "Технологии",
       "section": "Технологии и инновации",
       "subsection": "AI и машинное обучение",
-      "author": "YoungWings",
+      "author": "OrientVentus",
       "publishedAt": "2025-01-15T10:00:00Z",
       "readTime": "5 мин",
       "views": 1234,
@@ -186,7 +186,7 @@ Content-Type: application/json
   "category": "Технологии",
   "section": "Технологии и инновации",
   "subsection": "AI и машинное обучение",
-  "author": "YoungWings",
+  "author": "OrientVentus",
   "readTime": "5 мин",
   "tags": ["AI", "Технологии"],
   "status": "published"
@@ -657,7 +657,7 @@ const newPost = await postsApi.create({
   imageUrl: "https://...",
   category: "Технологии",
   section: "Технологии и инновации",
-  author: "YoungWings",
+  author: "OrientVentus",
   readTime: "5 мин",
   tags: ["AI", "Технологии"],
   status: "published"

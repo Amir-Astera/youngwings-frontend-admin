@@ -1,6 +1,6 @@
 # Примеры API для Kotlin Spring WebFlux
 
-Этот документ содержит примеры кода для создания REST API на Kotlin Spring WebFlux, который будет работать с админ-панелью YoungWings.
+Этот документ содержит примеры кода для создания REST API на Kotlin Spring WebFlux, который будет работать с админ-панелью OrientVentus.
 
 ## Структуры данных (Data Classes)
 

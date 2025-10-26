@@ -180,7 +180,7 @@ export function RightSidebar({ onPageChange, currentPage, filterContent }: Right
           <h3 className="text-sm">Поддержите нас</h3>
         </div>
         <p className="text-xs text-gray-600 mb-4 leading-relaxed">
-          YoungWings — независимое издание. Ваша поддержка помогает нам создавать качественный контент.
+          OrientVentus — независимое издание. Ваша поддержка помогает нам создавать качественный контент.
         </p>
         <Button className="w-full bg-blue-600 hover:bg-blue-700">
           Поддержать проект

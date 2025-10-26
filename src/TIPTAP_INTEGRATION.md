@@ -2,7 +2,7 @@
 
 ## Обзор
 
-Админ-панель YoungWings использует TipTap редактор для создания контента постов. TipTap сохраняет контент в формате JSON, который передается на бэкенд.
+Админ-панель OrientVentus использует TipTap редактор для создания контента постов. TipTap сохраняет контент в формате JSON, который передается на бэкенд.
 
 ## Формат данных TipTap
 
@@ -586,7 +586,7 @@ class TipTapToHtmlConverter {
   "excerpt": "Краткое описание тестового поста",
   "category": "Технологии",
   "section": "Технологии и инновации",
-  "author": "YoungWings",
+  "author": "OrientVentus",
   "readTime": "5 мин",
   "tags": ["тест", "пример"],
   "status": "published"
@@ -605,7 +605,7 @@ curl -X POST http://localhost:8080/api/posts \
     "excerpt": "Краткое описание",
     "category": "Технологии",
     "section": "Технологии и инновации",
-    "author": "YoungWings",
+    "author": "OrientVentus",
     "readTime": "5 мин",
     "tags": ["тест"],
     "status": "published"

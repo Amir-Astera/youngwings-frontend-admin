@@ -1,4 +1,4 @@
-# YoungWings Admin Panel - Integration Summary
+# OrientVentus Admin Panel - Integration Summary
 
 ## Что было сделано
 
@@ -53,7 +53,7 @@
 ## Структура проекта
 
 ```
-YoungWings Admin Panel/
+OrientVentus Admin Panel/
 ├── App.tsx                    # Только AdminApp
 ├── AdminApp.tsx               # Главный компонент админки
 │
@@ -225,7 +225,7 @@ npm run dev
   "imageUrl": "https://cdn.youngwings.kz/image.jpg",
   "category": "Технологии",
   "section": "Технологии и инновации",
-  "author": "YoungWings",
+  "author": "OrientVentus",
   "readTime": "5 мин",
   "tags": ["AI", "Технологии"],
   "status": "published"
@@ -245,7 +245,7 @@ npm run dev
   "imageUrl": "https://...",
   "category": "Технологии",
   "section": "Технологии и инновации",
-  "author": "YoungWings",
+  "author": "OrientVentus",
   "publishedAt": "2025-01-15T10:00:00Z",
   "readTime": "5 мин",
   "views": 0,
@@ -278,7 +278,7 @@ const contentString = JSON.stringify(contentJSON);
 val content: String  // Храните как есть
 ```
 
-### 3. Для отображения на сайте
+### 3. Для отображения в основном приложении
 
 Просто отправьте строку обратно - фронтенд сайта сам распарсит JSON и отрендерит контент.
 

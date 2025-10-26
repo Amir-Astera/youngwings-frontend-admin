@@ -65,7 +65,7 @@ const createInitialPostState = (): Partial<Post> => ({
   chapter: sections[0],
   category: "",
   topic: "",
-  author: "YoungWings",
+  author: "OrientVentus",
   tags: [],
   status: "draft",
 });
@@ -281,7 +281,7 @@ export function PostEditor({ postId, onSave, onCancel }: PostEditorProps) {
           : "";
 
       const descriptionValue = (post.description ?? trimmedExcerpt).trim() || trimmedExcerpt;
-      const authorValue = (post.author ?? "YoungWings").trim() || "YoungWings";
+      const authorValue = (post.author ?? "OrientVentus").trim() || "OrientVentus";
 
       if (trimmedTopic && !topics.includes(trimmedTopic)) {
         try {
@@ -705,7 +705,7 @@ export function PostEditor({ postId, onSave, onCancel }: PostEditorProps) {
             <div className="p-5 pb-4">
               <div className="flex items-start gap-3 mb-3">
                 <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
-                  <span className="text-white text-lg">YW</span>
+                  <span className="text-white text-lg">OV</span>
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="text-sm text-gray-900 mb-0.5">{post.author}</div>
