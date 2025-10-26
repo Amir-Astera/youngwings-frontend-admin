@@ -5,6 +5,7 @@ import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Textarea } from "../ui/textarea";
 import { api, Event, eventsApi, settingsApi } from "../../lib/api";
+import type { RegionCityMap } from "../../lib/api";
 import { resolveFileUrl } from "../../lib/files";
 import { toast } from "sonner";
 import {
@@ -28,7 +29,9 @@ import {
 export function EventsManager() {
   const [events, setEvents] = useState<Event[]>([]);
   const [eventsMeta, setEventsMeta] = useState({ total: 0, page: 1, size: 20 });
+  const [regionCityMap, setRegionCityMap] = useState<RegionCityMap>({});
   const [regions, setRegions] = useState<string[]>([]);
+  const [availableCities, setAvailableCities] = useState<string[]>([]);
   const [spheres, setSpheres] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showDialog, setShowDialog] = useState(false);
@@ -52,10 +55,54 @@ export function EventsManager() {
   const coverPreviewUrl =
     resolveFileUrl(formData.coverUrl ?? undefined) ?? (formData.coverUrl?.trim() ?? "");
 
+  const selectedRegion = (formData.region ?? "").trim();
+  const selectedCity = (formData.location ?? "").trim();
+
+  const updateAvailableCities = (
+    regionName: string,
+    currentCity?: string,
+    sourceMap?: RegionCityMap
+  ) => {
+    const map = sourceMap ?? regionCityMap;
+    const trimmedRegion = regionName.trim();
+
+    if (!trimmedRegion) {
+      setAvailableCities([]);
+      return;
+    }
+
+    const normalizedRegion =
+      Object.keys(map).find((key) => key.toLowerCase() === trimmedRegion.toLowerCase()) ??
+      trimmedRegion;
+
+    const baseCities = map[normalizedRegion] ?? [];
+    const trimmedCity = currentCity?.trim();
+
+    const uniqueCities = new Set(
+      baseCities.map((city) => city.trim()).filter((city) => city.length > 0)
+    );
+
+    if (trimmedCity && trimmedCity.length > 0) {
+      uniqueCities.add(trimmedCity);
+    }
+
+    const nextCities = Array.from(uniqueCities).sort((a, b) => a.localeCompare(b, "ru"));
+    setAvailableCities(nextCities);
+  };
+
   useEffect(() => {
     loadEvents();
     loadSettings();
   }, []);
+
+  useEffect(() => {
+    if (!selectedRegion) {
+      setAvailableCities([]);
+      return;
+    }
+
+    updateAvailableCities(selectedRegion, selectedCity);
+  }, [selectedRegion, selectedCity, regionCityMap]);
 
   const loadEvents = async () => {
     try {
@@ -73,14 +120,35 @@ export function EventsManager() {
   const loadSettings = async () => {
     try {
       const [regionsData, spheresData] = await Promise.all([
-        settingsApi.getRegions(),
+        settingsApi.getRegionsWithCities(),
         settingsApi.getSpheres(),
       ]);
-      setRegions(regionsData);
+      const sortedRegions = Object.keys(regionsData).sort((a, b) => a.localeCompare(b, "ru"));
+      setRegionCityMap(regionsData);
+      setRegions(sortedRegions);
       setSpheres(spheresData);
+      updateAvailableCities(selectedRegion, selectedCity, regionsData);
     } catch (error) {
       console.error("Ошибка загрузки настроек");
     }
+  };
+
+  const handleRegionSelect = (value: string) => {
+    const trimmed = value.trim();
+    setFormData((prev) => ({
+      ...prev,
+      region: trimmed,
+      location: "",
+    }));
+    updateAvailableCities(trimmed);
+  };
+
+  const handleCitySelect = (value: string) => {
+    const trimmed = value.trim();
+    setFormData((prev) => ({
+      ...prev,
+      location: trimmed,
+    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -113,9 +181,9 @@ export function EventsManager() {
       "title",
       "description",
       "eventDate",
+      "region",
       "location",
       "format",
-      "region",
       "sphere",
     ];
 
@@ -123,7 +191,7 @@ export function EventsManager() {
       title: "Заголовок",
       description: "Описание",
       eventDate: "Дата проведения",
-      location: "Локация",
+      location: "Город",
       format: "Формат",
       region: "Регион",
       sphere: "Сфера",
@@ -170,6 +238,7 @@ export function EventsManager() {
       coverUrl: event.coverUrl ?? "",
       registrationUrl: event.registrationUrl ?? "",
     });
+    updateAvailableCities(event.region ?? "", event.location ?? "");
     setShowDialog(true);
   };
 
@@ -198,6 +267,7 @@ export function EventsManager() {
       registrationUrl: "",
     });
     setEditingEvent(null);
+    setAvailableCities([]);
   };
 
   const handleCoverUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -356,16 +426,6 @@ export function EventsManager() {
               />
             </div>
 
-            <div>
-              <Label htmlFor="location">Место проведения *</Label>
-              <Input
-                id="location"
-                value={formData.location}
-                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                required
-              />
-            </div>
-
             <div className="grid sm:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="format">Формат</Label>
@@ -380,25 +440,6 @@ export function EventsManager() {
                   <option value="HYBRID">Гибрид</option>
                 </select>
               </div>
-            </div>
-
-            <div className="grid sm:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="region">Регион</Label>
-                <select
-                  id="region"
-                  value={formData.region}
-                  onChange={(e) => setFormData({ ...formData, region: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg"
-                >
-                  <option value="">Выберите регион</option>
-                  {regions.map((region) => (
-                    <option key={region} value={region}>
-                      {region}
-                    </option>
-                  ))}
-                </select>
-              </div>
               <div>
                 <Label htmlFor="sphere">Сфера</Label>
                 <select
@@ -411,6 +452,46 @@ export function EventsManager() {
                   {spheres.map((sphere) => (
                     <option key={sphere} value={sphere}>
                       {sphere}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="region">Регион *</Label>
+                <select
+                  id="region"
+                  value={formData.region ?? ""}
+                  onChange={(e) => handleRegionSelect(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg"
+                  required
+                >
+                  <option value="">Выберите регион</option>
+                  {regions.map((region) => (
+                    <option key={region} value={region}>
+                      {region}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <Label htmlFor="city">Город *</Label>
+                <select
+                  id="city"
+                  value={formData.location ?? ""}
+                  onChange={(e) => handleCitySelect(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg"
+                  disabled={!selectedRegion}
+                  required={Boolean(selectedRegion)}
+                >
+                  <option value="">
+                    {selectedRegion ? "Выберите город" : "Сначала выберите регион"}
+                  </option>
+                  {availableCities.map((city) => (
+                    <option key={city} value={city}>
+                      {city}
                     </option>
                   ))}
                 </select>
