@@ -380,9 +380,9 @@ const DEFAULT_MOCK_EVENTS: Event[] = [
       'Двухдневная выставка проектов молодых ученых и инженеров с мастер-классами и нетворкингом.',
     eventDate: '2024-08-15',
     eventTime: '10:00',
-    location: 'Москва, ВДНХ',
+    location: 'Алматы',
     format: 'OFFLINE',
-    region: 'Москва',
+    region: 'Казахстан',
     sphere: 'Наука и технологии',
     coverUrl:
       'https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=800&q=80',
@@ -397,9 +397,9 @@ const DEFAULT_MOCK_EVENTS: Event[] = [
       'Серия онлайн-дискуссий о лучших практиках социального предпринимательства и поддержке молодёжных инициатив.',
     eventDate: '2024-09-05',
     eventTime: '14:00',
-    location: 'Онлайн',
+    location: 'Ташкент',
     format: 'ONLINE',
-    region: 'Санкт-Петербург',
+    region: 'Узбекистан',
     sphere: 'Социальные проекты',
     coverUrl:
       'https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=800&q=80',
@@ -443,6 +443,135 @@ const saveMockCollection = <T>(key: string, data: T[]) => {
   } catch (error) {
     // Ignore write errors for mock data
   }
+};
+
+export type RegionCityMap = Record<string, string[]>;
+
+const normalizeCityList = (value: unknown): string[] => {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  const unique = new Set<string>();
+  value.forEach((item) => {
+    if (typeof item === 'string') {
+      const trimmed = item.trim();
+      if (trimmed.length > 0) {
+        unique.add(trimmed);
+      }
+    }
+  });
+
+  return Array.from(unique).sort((a, b) => a.localeCompare(b, 'ru'));
+};
+
+const sortRegionCityMap = (map: RegionCityMap): RegionCityMap => {
+  const normalizedEntries = Object.entries(map).reduce<RegionCityMap>((acc, [region, cities]) => {
+    const trimmedRegion = region.trim();
+    if (!trimmedRegion) {
+      return acc;
+    }
+
+    acc[trimmedRegion] = normalizeCityList(cities);
+    return acc;
+  }, {});
+
+  const sortedRegions = Object.keys(normalizedEntries).sort((a, b) => a.localeCompare(b, 'ru'));
+  const sortedMap: RegionCityMap = {};
+  sortedRegions.forEach((region) => {
+    sortedMap[region] = normalizedEntries[region];
+  });
+
+  return sortedMap;
+};
+
+const toRegionCityMap = (value: unknown): RegionCityMap | null => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return null;
+  }
+
+  const entries = Object.entries(value as Record<string, unknown>);
+  if (entries.length === 0) {
+    return null;
+  }
+
+  const map: RegionCityMap = {};
+  entries.forEach(([region, cities]) => {
+    if (typeof region !== 'string') {
+      return;
+    }
+
+    const trimmedRegion = region.trim();
+    if (!trimmedRegion) {
+      return;
+    }
+
+    map[trimmedRegion] = normalizeCityList(cities);
+  });
+
+  return sortRegionCityMap(map);
+};
+
+const loadMockRegionCityMap = (key: string, defaults: RegionCityMap): RegionCityMap => {
+  const normalizedDefaults = sortRegionCityMap(defaults);
+
+  try {
+    if (typeof window === 'undefined' || !window.localStorage) {
+      return normalizedDefaults;
+    }
+
+    const storedValue = window.localStorage.getItem(key);
+    if (!storedValue) {
+      window.localStorage.setItem(key, JSON.stringify(normalizedDefaults));
+      return normalizedDefaults;
+    }
+
+    const parsed = JSON.parse(storedValue) as unknown;
+
+    if (Array.isArray(parsed)) {
+      const map: RegionCityMap = {};
+      parsed.forEach((region) => {
+        if (typeof region === 'string') {
+          const trimmedRegion = region.trim();
+          if (trimmedRegion.length > 0) {
+            map[trimmedRegion] = normalizedDefaults[trimmedRegion] ?? [];
+          }
+        }
+      });
+
+      const normalized = Object.keys(map).length > 0 ? sortRegionCityMap(map) : normalizedDefaults;
+      window.localStorage.setItem(key, JSON.stringify(normalized));
+      return normalized;
+    }
+
+    const normalized = toRegionCityMap(parsed) ?? normalizedDefaults;
+    window.localStorage.setItem(key, JSON.stringify(normalized));
+    return normalized;
+  } catch (error) {
+    return normalizedDefaults;
+  }
+};
+
+const saveMockRegionCityMap = (key: string, data: RegionCityMap) => {
+  try {
+    if (typeof window === 'undefined' || !window.localStorage) {
+      return;
+    }
+
+    const normalized = sortRegionCityMap(data);
+    window.localStorage.setItem(key, JSON.stringify(normalized));
+  } catch (error) {
+    // Ignore write errors for mock data
+  }
+};
+
+const findRegionKey = (map: RegionCityMap, region: string): string | undefined => {
+  const normalizedRegion = region.trim().toLowerCase();
+  if (!normalizedRegion) {
+    return undefined;
+  }
+
+  return Object.keys(map).find((key) => key.toLowerCase() === normalizedRegion);
 };
 
 const createPaginatedResult = <T>(items: T[], page = 1, size?: number): PaginatedResult<T> => {
@@ -489,15 +618,19 @@ const MOCK_REGIONS_KEY = 'admin_mock_regions';
 const MOCK_SPHERES_KEY = 'admin_mock_spheres';
 const MOCK_TOPICS_KEY = 'admin_mock_topics';
 
-const DEFAULT_MOCK_REGIONS = [
-  'Республика Казахстан',
-  'Алматы',
-  'Астана',
-  'Кыргызстан',
-  'Узбекистан',
-  'Таджикистан',
-  'Туркменистан',
-];
+const DEFAULT_REGION_CITY_MAP: RegionCityMap = {
+  Казахстан: ['Астана', 'Алматы', 'Шымкент', 'Караганда'],
+  Россия: ['Москва', 'Санкт-Петербург', 'Новосибирск', 'Екатеринбург'],
+  Кыргызстан: ['Бишкек', 'Ош', 'Джалал-Абад'],
+  Узбекистан: ['Ташкент', 'Самарканд', 'Бухара'],
+  Беларусь: ['Минск', 'Гомель', 'Брест'],
+  Армения: ['Ереван', 'Гюмри', 'Ванадзор'],
+  Азербайджан: ['Баку', 'Гянджа', 'Сумгайыт'],
+  Молдова: ['Кишинев', 'Бельцы', 'Тирасполь'],
+  Таджикистан: ['Душанбе', 'Худжанд', 'Бохтар'],
+  Туркменистан: ['Ашхабад', 'Туркменабат', 'Дашогуз'],
+  Китай: ['Пекин', 'Шанхай', 'Урумчи'],
+};
 
 const DEFAULT_MOCK_SPHERES = [
   'Зеленая экономика',
@@ -883,8 +1016,19 @@ export const commentsApi = {
 
 // Settings API
 export const settingsApi = {
+  getRegionsWithCities: async (): Promise<RegionCityMap> => {
+    return loadMockRegionCityMap(MOCK_REGIONS_KEY, DEFAULT_REGION_CITY_MAP);
+  },
+
   getRegions: async () => {
-    return loadMockCollection<string>(MOCK_REGIONS_KEY, DEFAULT_MOCK_REGIONS);
+    const regionsMap = await settingsApi.getRegionsWithCities();
+    return Object.keys(regionsMap).sort((a, b) => a.localeCompare(b, 'ru'));
+  },
+
+  getCities: async (region: string) => {
+    const regionsMap = await settingsApi.getRegionsWithCities();
+    const key = findRegionKey(regionsMap, region);
+    return key ? regionsMap[key] : [];
   },
 
   getSpheres: async () => {
@@ -914,7 +1058,42 @@ export const settingsApi = {
   },
 
   addRegion: async (region: string) => {
-    return addToMockCollection(MOCK_REGIONS_KEY, DEFAULT_MOCK_REGIONS, region);
+    const trimmedRegion = region.trim();
+    if (!trimmedRegion) {
+      return loadMockRegionCityMap(MOCK_REGIONS_KEY, DEFAULT_REGION_CITY_MAP);
+    }
+
+    const regionsMap = loadMockRegionCityMap(MOCK_REGIONS_KEY, DEFAULT_REGION_CITY_MAP);
+    const existingKey = findRegionKey(regionsMap, trimmedRegion);
+
+    if (existingKey) {
+      const normalized = sortRegionCityMap(regionsMap);
+      saveMockRegionCityMap(MOCK_REGIONS_KEY, normalized);
+      return normalized;
+    }
+
+    const updatedMap = sortRegionCityMap({ ...regionsMap, [trimmedRegion]: [] });
+    saveMockRegionCityMap(MOCK_REGIONS_KEY, updatedMap);
+    return updatedMap;
+  },
+
+  addCity: async (region: string, city: string) => {
+    const trimmedRegion = region.trim();
+    const trimmedCity = city.trim();
+
+    if (!trimmedRegion || !trimmedCity) {
+      return loadMockRegionCityMap(MOCK_REGIONS_KEY, DEFAULT_REGION_CITY_MAP);
+    }
+
+    const regionsMap = loadMockRegionCityMap(MOCK_REGIONS_KEY, DEFAULT_REGION_CITY_MAP);
+    const key = findRegionKey(regionsMap, trimmedRegion) ?? trimmedRegion;
+    const cities = regionsMap[key] ?? [];
+    const hasCity = cities.some((value) => value.toLowerCase() === trimmedCity.toLowerCase());
+
+    const updatedCities = hasCity ? cities : [...cities, trimmedCity];
+    const updatedMap = sortRegionCityMap({ ...regionsMap, [key]: updatedCities });
+    saveMockRegionCityMap(MOCK_REGIONS_KEY, updatedMap);
+    return updatedMap;
   },
 
   addSphere: async (sphere: string) => {
@@ -938,7 +1117,50 @@ export const settingsApi = {
   },
 
   deleteRegion: async (region: string) => {
-    return removeFromMockCollection(MOCK_REGIONS_KEY, DEFAULT_MOCK_REGIONS, region);
+    const trimmedRegion = region.trim();
+    if (!trimmedRegion) {
+      return loadMockRegionCityMap(MOCK_REGIONS_KEY, DEFAULT_REGION_CITY_MAP);
+    }
+
+    const regionsMap = loadMockRegionCityMap(MOCK_REGIONS_KEY, DEFAULT_REGION_CITY_MAP);
+    const key = findRegionKey(regionsMap, trimmedRegion);
+
+    if (!key) {
+      const normalized = sortRegionCityMap(regionsMap);
+      saveMockRegionCityMap(MOCK_REGIONS_KEY, normalized);
+      return normalized;
+    }
+
+    const { [key]: _removed, ...rest } = regionsMap;
+    const updatedMap = sortRegionCityMap(rest);
+    saveMockRegionCityMap(MOCK_REGIONS_KEY, updatedMap);
+    return updatedMap;
+  },
+
+  deleteCity: async (region: string, city: string) => {
+    const trimmedRegion = region.trim();
+    const trimmedCity = city.trim();
+
+    if (!trimmedRegion || !trimmedCity) {
+      return loadMockRegionCityMap(MOCK_REGIONS_KEY, DEFAULT_REGION_CITY_MAP);
+    }
+
+    const regionsMap = loadMockRegionCityMap(MOCK_REGIONS_KEY, DEFAULT_REGION_CITY_MAP);
+    const key = findRegionKey(regionsMap, trimmedRegion);
+
+    if (!key) {
+      const normalized = sortRegionCityMap(regionsMap);
+      saveMockRegionCityMap(MOCK_REGIONS_KEY, normalized);
+      return normalized;
+    }
+
+    const updatedCities = (regionsMap[key] ?? []).filter(
+      (value) => value.toLowerCase() !== trimmedCity.toLowerCase()
+    );
+
+    const updatedMap = sortRegionCityMap({ ...regionsMap, [key]: updatedCities });
+    saveMockRegionCityMap(MOCK_REGIONS_KEY, updatedMap);
+    return updatedMap;
   },
 
   deleteSphere: async (sphere: string) => {
