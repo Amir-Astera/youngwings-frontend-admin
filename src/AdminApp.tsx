@@ -49,9 +49,9 @@ function LoginPage({ onLogin, theme, onThemeChange }: LoginPageProps) {
         <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-8">
           <div className="flex items-center justify-center gap-2 mb-8">
             <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-              <span className="text-white">YW</span>
+              <span className="text-white">OV</span>
             </div>
-            <h1 className="text-2xl">YoungWings Admin</h1>
+            <h1 className="text-2xl">OrientVentus Admin</h1>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -64,7 +64,7 @@ function LoginPage({ onLogin, theme, onThemeChange }: LoginPageProps) {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="admin@youngwings.kz"
+                placeholder="admin@orientventus.kz"
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
                 required
               />
@@ -106,7 +106,7 @@ function LoginPage({ onLogin, theme, onThemeChange }: LoginPageProps) {
               <strong>Тестовые данные для входа:</strong>
             </p>
             <p className="text-xs text-blue-700">
-              Email: <code className="bg-white px-1.5 py-0.5 rounded">admin@youngwings.ru</code>
+              Email: <code className="bg-white px-1.5 py-0.5 rounded">admin@orientventus.ru</code>
             </p>
             <p className="text-xs text-blue-700">
               Пароль: <code className="bg-white px-1.5 py-0.5 rounded">admin123</code>
@@ -115,7 +115,7 @@ function LoginPage({ onLogin, theme, onThemeChange }: LoginPageProps) {
         </div>
 
         <p className="text-center text-sm text-gray-500 mt-4">
-          YoungWings © 2025. Все права защищены.
+          OrientVentus © 2025. Все права защищены.
         </p>
       </div>
     </div>

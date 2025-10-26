@@ -72,9 +72,9 @@ export function AdminLayout({
             </button>
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                <span className="text-white text-sm">YW</span>
+                <span className="text-white text-sm">OV</span>
               </div>
-              <span className="text-lg">YoungWings Admin</span>
+              <span className="text-lg">OrientVentus Admin</span>
             </div>
           </div>
           
@@ -83,10 +83,10 @@ export function AdminLayout({
             <Button
               variant="ghost"
               onClick={handleExitAdmin}
-              aria-label="Вернуться на сайт"
+              aria-label="Вернуться в приложение"
               className="text-sm px-3"
             >
-              На сайт
+              Вернуться
             </Button>
             <Button variant="ghost" onClick={handleLogout} className="gap-2">
               <LogOut className="w-4 h-4" />

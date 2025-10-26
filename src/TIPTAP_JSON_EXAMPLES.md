@@ -577,7 +577,7 @@ JSON **сериализуется в строку** и отправляется 
   "excerpt": "Краткое описание статьи",
   "category": "Технологии",
   "section": "Технологии и инновации",
-  "author": "YoungWings",
+  "author": "OrientVentus",
   "readTime": "5 мин",
   "tags": ["AI", "Технологии"],
   "status": "published"

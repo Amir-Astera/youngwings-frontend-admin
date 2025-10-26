@@ -1,8 +1,8 @@
-# YoungWings Admin Panel - Quick Start
+# OrientVentus Admin Panel - Quick Start
 
 ## Описание
 
-Это админ-панель для управления контентом новостного сайта YoungWings. Панель работает **независимо** от основного сайта и общается с бэкендом только через API.
+Это админ-панель для управления контентом новостного сайта OrientVentus. Панель работает **независимо** от основного сайта и общается с бэкендом только через API.
 
 ## Архитектура
 
@@ -170,7 +170,7 @@ export const authApi = {
   "category": "Технологии",
   "section": "Технологии и инновации",
   "subsection": "AI и Machine Learning",
-  "author": "YoungWings",
+  "author": "OrientVentus",
   "readTime": "5 мин",
   "tags": ["AI", "Технологии"],
   "status": "published"
@@ -416,4 +416,4 @@ npm run build
 
 ## Лицензия
 
-© 2025 YoungWings. Все права защищены.
+© 2025 OrientVentus. Все права защищены.
