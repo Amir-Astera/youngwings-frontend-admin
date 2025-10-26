@@ -81,9 +81,13 @@ export function AdminLayout({
           
           <div className="flex items-center gap-3">
             <ThemeToggle theme={theme} onThemeChange={onThemeChange} />
-            <Button variant="ghost" onClick={handleExitAdmin} className="gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleExitAdmin}
+              aria-label="Вернуться на сайт"
+            >
               <ArrowLeft className="w-4 h-4" />
-              <span className="hidden sm:inline">К сайту</span>
             </Button>
             <Button variant="ghost" onClick={handleLogout} className="gap-2">
               <LogOut className="w-4 h-4" />
