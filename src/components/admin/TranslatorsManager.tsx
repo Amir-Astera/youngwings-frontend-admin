@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { Plus, Edit, Trash2, Save } from "lucide-react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
@@ -25,6 +25,7 @@ import {
   Translator,
   TranslatorRequest,
   translatorsApi,
+  api,
 } from "../../lib/api";
 import { resolveFileUrl } from "../../lib/files";
 
@@ -79,6 +80,10 @@ export function TranslatorsManager() {
   const [formData, setFormData] = useState<TranslatorRequest>(emptyForm);
   const [filters, setFilters] = useState(() => ({ ...initialFilters }));
   const [pagination, setPagination] = useState({ page: 1, size: 20, total: 0 });
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const photoInputRef = useRef<HTMLInputElement | null>(null);
+  const photoPreviewUrl =
+    resolveFileUrl(formData.qrUrl?.trim() || undefined) ?? (formData.qrUrl?.trim() ?? "");
 
   useEffect(() => {
     void loadTranslators(1, filters, pagination.size);
@@ -113,6 +118,11 @@ export function TranslatorsManager() {
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
 
+    if (isUploadingPhoto) {
+      toast.error("Дождитесь завершения загрузки фото");
+      return;
+    }
+
     const trimmed: TranslatorRequest = {
       fullName: formData.fullName.trim(),
       languages: formData.languages.trim(),
@@ -129,8 +139,8 @@ export function TranslatorsManager() {
       specialization: "Специализация",
       experience: "Опыт",
       location: "Локация",
-      qrUrl: "Ссылка на QR-код",
-      nickname: "Никнейм",
+      qrUrl: "Фото",
+      nickname: "Ватсап номер",
     };
 
     const missingField = (Object.keys(trimmed) as Array<keyof TranslatorRequest>).find(
@@ -187,6 +197,9 @@ export function TranslatorsManager() {
   const resetForm = () => {
     setFormData(emptyForm);
     setEditingTranslator(null);
+    if (photoInputRef.current) {
+      photoInputRef.current.value = "";
+    }
   };
 
   const handleFilterSubmit = async (event: React.FormEvent) => {
@@ -197,6 +210,30 @@ export function TranslatorsManager() {
   const handleResetFilters = () => {
     setFilters({ ...initialFilters });
     void loadTranslators(1, initialFilters, pagination.size);
+  };
+
+  const handlePhotoUpload = async (fileEvent: ChangeEvent<HTMLInputElement>) => {
+    const file = fileEvent.target.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    try {
+      setIsUploadingPhoto(true);
+      const uploadResult = await api.uploadFile("ASSETS", file);
+      const uploadedUrl = resolveFileUrl(uploadResult.url) ?? uploadResult.url ?? "";
+
+      setFormData((prev) => ({ ...prev, qrUrl: uploadedUrl }));
+      toast.success("Фото загружено");
+    } catch (error) {
+      console.error(error);
+      toast.error(error instanceof Error ? error.message : "Ошибка загрузки фото");
+    } finally {
+      setIsUploadingPhoto(false);
+      if (fileEvent.target) {
+        fileEvent.target.value = "";
+      }
+    }
   };
 
   const splitValues = (value: string) => (value ? parseCsv(value) : []);
@@ -287,7 +324,7 @@ export function TranslatorsManager() {
           translators.map((translator) => {
             const languages = splitValues(translator.languages);
             const specializations = splitValues(translator.specialization);
-            const qrLink = resolveFileUrl(translator.qrUrl) ?? translator.qrUrl;
+            const photoUrl = resolveFileUrl(translator.qrUrl) ?? translator.qrUrl;
 
             return (
               <div
@@ -295,11 +332,20 @@ export function TranslatorsManager() {
                 className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm space-y-4"
               >
                 <div className="flex justify-between items-start gap-4">
-                  <div>
-                    <h3 className="text-lg font-semibold mb-1">{translator.fullName}</h3>
-                    <div className="space-y-1 text-sm text-gray-500">
-                      <div>Никнейм: {translator.nickname}</div>
-                      <div>Локация: {translator.location}</div>
+                  <div className="flex items-start gap-4">
+                    {photoUrl && (
+                      <img
+                        src={photoUrl}
+                        alt={translator.fullName}
+                        className="w-20 h-20 rounded-lg object-cover border border-gray-200"
+                      />
+                    )}
+                    <div>
+                      <h3 className="text-lg font-semibold mb-1">{translator.fullName}</h3>
+                      <div className="space-y-1 text-sm text-gray-500">
+                        <div>Ватсап номер: {translator.nickname}</div>
+                        <div>Локация: {translator.location}</div>
+                      </div>
                     </div>
                   </div>
                   <div className="text-right text-xs text-gray-500 space-y-1">
@@ -347,16 +393,15 @@ export function TranslatorsManager() {
                   Опыт: <span className="text-gray-700">{translator.experience}</span>
                 </div>
 
-                {qrLink && (
-                  <div className="text-sm">
-                    QR-код: {" "}
+                {photoUrl && (
+                  <div>
                     <a
-                      href={qrLink}
+                      href={photoUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-blue-600 hover:underline break-all"
+                      className="text-sm text-blue-600 hover:underline"
                     >
-                      {qrLink}
+                      Открыть фото
                     </a>
                   </div>
                 )}
@@ -462,7 +507,7 @@ export function TranslatorsManager() {
 
             <div className="grid md:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="nickname">Никнейм *</Label>
+                <Label htmlFor="nickname">Ватсап номер *</Label>
                 <Input
                   id="nickname"
                   value={formData.nickname}
@@ -470,15 +515,49 @@ export function TranslatorsManager() {
                   required
                 />
               </div>
-              <div>
-                <Label htmlFor="qrUrl">Ссылка на QR-код *</Label>
-                <Input
-                  id="qrUrl"
-                  value={formData.qrUrl}
-                  onChange={(event) => setFormData({ ...formData, qrUrl: event.target.value })}
-                placeholder="/api/files/thumbnail/qr/..."
-                  required
+            </div>
+
+            <div>
+              <Label>Фото *</Label>
+              <div className="mt-2 flex flex-col gap-3">
+                <div className="flex items-center gap-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => photoInputRef.current?.click()}
+                    disabled={isUploadingPhoto}
+                  >
+                    {isUploadingPhoto
+                      ? "Загрузка..."
+                      : photoPreviewUrl
+                        ? "Заменить фото"
+                        : "Загрузить фото"}
+                  </Button>
+                  {photoPreviewUrl && (
+                    <a
+                      href={photoPreviewUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-blue-600 hover:underline"
+                    >
+                      Открыть в новой вкладке
+                    </a>
+                  )}
+                </div>
+                <input
+                  ref={photoInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handlePhotoUpload}
                 />
+                {photoPreviewUrl && (
+                  <img
+                    src={photoPreviewUrl}
+                    alt="Фото переводчика"
+                    className="w-32 h-32 object-cover rounded-lg border border-gray-200"
+                  />
+                )}
               </div>
             </div>
 

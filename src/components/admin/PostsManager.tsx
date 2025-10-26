@@ -27,6 +27,20 @@ export function PostsManager() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterSection, setFilterSection] = useState<string>("all");
 
+  const sectionOptions = [
+    { value: "all", label: "Все разделы" },
+    { value: "Бизнес и стартапы", label: "Бизнес и стартапы" },
+    { value: "Экономика и финансы", label: "Экономика и финансы" },
+    { value: "Рынок и аналитика", label: "Рынок и аналитика" },
+    { value: "Технологии и инновации", label: "Технологии и инновации" },
+    { value: "Маркетинг и бренды", label: "Маркетинг и бренды" },
+    { value: "Потребление и лайфстайл", label: "Потребление и лайфстайл" },
+    { value: "Международный бизнес", label: "Международный бизнес" },
+    { value: "Медиа и контент", label: "Медиа и контент" },
+    { value: "Мнения и аналитика", label: "Мнения и аналитика" },
+    { value: "Авто и транспорт", label: "Авто и транспорт" },
+  ];
+
   useEffect(() => {
     loadPosts();
   }, []);
@@ -75,8 +89,10 @@ export function PostsManager() {
     const excerpt = (post.excerpt || post.description || "").toLowerCase();
     const title = (post.title || "").toLowerCase();
     const matchesSearch = title.includes(lowerQuery) || excerpt.includes(lowerQuery);
-    const sectionValue = post.section || post.chapter || "";
-    const matchesSection = filterSection === "all" || sectionValue === filterSection;
+    const sectionValue = (post.section || post.chapter || "").trim();
+    const matchesSection =
+      filterSection === "all" ||
+      sectionValue.toLowerCase() === filterSection.toLowerCase();
     return matchesSearch && matchesSection;
   });
 
@@ -118,10 +134,11 @@ export function PostsManager() {
             onChange={(e) => setFilterSection(e.target.value)}
             className="px-3 py-2 border border-gray-200 rounded-lg text-sm"
           >
-            <option value="all">Все разделы</option>
-            <option value="Бизнес и стартапы">Бизнес и стартапы</option>
-            <option value="Технологии и инновации">Технологии и инновации</option>
-            <option value="Экономика и финансы">Экономика и финансы</option>
+            {sectionOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
           </select>
         </div>
       </div>

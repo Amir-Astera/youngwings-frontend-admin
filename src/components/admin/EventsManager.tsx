@@ -38,7 +38,7 @@ export function EventsManager() {
     title: "",
     description: "",
     eventDate: "",
-    eventTime: "",
+    eventTime: "00:00",
     location: "",
     format: "ONLINE",
     region: "",
@@ -100,7 +100,7 @@ export function EventsManager() {
       title: trimValue(formData.title),
       description: trimValue(formData.description),
       eventDate: trimValue(formData.eventDate),
-      eventTime: trimValue(formData.eventTime),
+      eventTime: "00:00",
       location: trimValue(formData.location),
       format: trimValue(formData.format),
       region: trimValue(formData.region),
@@ -113,7 +113,6 @@ export function EventsManager() {
       "title",
       "description",
       "eventDate",
-      "eventTime",
       "location",
       "format",
       "region",
@@ -124,7 +123,6 @@ export function EventsManager() {
       title: "Заголовок",
       description: "Описание",
       eventDate: "Дата проведения",
-      eventTime: "Время проведения",
       location: "Локация",
       format: "Формат",
       region: "Регион",
@@ -164,7 +162,7 @@ export function EventsManager() {
       title: event.title,
       description: event.description,
       eventDate: event.eventDate,
-      eventTime: event.eventTime,
+      eventTime: event.eventTime || "00:00",
       location: event.location,
       format: event.format,
       region: event.region,
@@ -191,7 +189,7 @@ export function EventsManager() {
       title: "",
       description: "",
       eventDate: "",
-      eventTime: "",
+      eventTime: "00:00",
       location: "",
       format: "ONLINE",
       region: "",
@@ -347,27 +345,15 @@ export function EventsManager() {
               />
             </div>
 
-            <div className="grid sm:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="date">Дата *</Label>
-                <Input
-                  id="date"
-                  type="date"
-                  value={formData.eventDate}
-                  onChange={(e) => setFormData({ ...formData, eventDate: e.target.value })}
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="time">Время *</Label>
-                <Input
-                  id="time"
-                  type="time"
-                  value={formData.eventTime}
-                  onChange={(e) => setFormData({ ...formData, eventTime: e.target.value })}
-                  required
-                />
-              </div>
+            <div>
+              <Label htmlFor="date">Дата *</Label>
+              <Input
+                id="date"
+                type="date"
+                value={formData.eventDate}
+                onChange={(e) => setFormData({ ...formData, eventDate: e.target.value })}
+                required
+              />
             </div>
 
             <div>

@@ -10,8 +10,7 @@ import {
   Settings, 
   LogOut,
   Menu,
-  X,
-  ArrowLeft
+  X
 } from "lucide-react";
 import { Button } from "../ui/button";
 import { authApi } from "../../lib/api";
@@ -83,11 +82,11 @@ export function AdminLayout({
             <ThemeToggle theme={theme} onThemeChange={onThemeChange} />
             <Button
               variant="ghost"
-              size="icon"
               onClick={handleExitAdmin}
               aria-label="Вернуться на сайт"
+              className="text-sm px-3"
             >
-              <ArrowLeft className="w-4 h-4" />
+              На сайт
             </Button>
             <Button variant="ghost" onClick={handleLogout} className="gap-2">
               <LogOut className="w-4 h-4" />
