@@ -64,7 +64,7 @@ function LoginPage({ onLogin, theme, onThemeChange }: LoginPageProps) {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="admin@orientventus.kz"
+                placeholder="admin@orientventus.ru"
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
                 required
               />
@@ -79,7 +79,7 @@ function LoginPage({ onLogin, theme, onThemeChange }: LoginPageProps) {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
+                placeholder="admin123"
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
                 required
               />
@@ -100,18 +100,6 @@ function LoginPage({ onLogin, theme, onThemeChange }: LoginPageProps) {
             </button>
           </form>
 
-          {/* Test credentials info */}
-          <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-            <p className="text-xs text-blue-800 mb-2">
-              <strong>Тестовые данные для входа:</strong>
-            </p>
-            <p className="text-xs text-blue-700">
-              Email: <code className="bg-white px-1.5 py-0.5 rounded">admin@orientventus.ru</code>
-            </p>
-            <p className="text-xs text-blue-700">
-              Пароль: <code className="bg-white px-1.5 py-0.5 rounded">admin123</code>
-            </p>
-          </div>
         </div>
 
         <p className="text-center text-sm text-gray-500 mt-4">
@@ -124,12 +112,11 @@ function LoginPage({ onLogin, theme, onThemeChange }: LoginPageProps) {
 
 // Main Admin App
 interface AdminAppProps {
-  onExit?: () => void;
   theme: Theme;
   onThemeChange: (theme: Theme) => void;
 }
 
-export default function AdminApp({ onExit, theme, onThemeChange }: AdminAppProps) {
+export default function AdminApp({ theme, onThemeChange }: AdminAppProps) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentPage, setCurrentPage] = useState("dashboard");
 
@@ -170,7 +157,6 @@ export default function AdminApp({ onExit, theme, onThemeChange }: AdminAppProps
     <AdminLayout
       currentPage={currentPage}
       onPageChange={setCurrentPage}
-      onExit={onExit}
       theme={theme}
       onThemeChange={onThemeChange}
     >

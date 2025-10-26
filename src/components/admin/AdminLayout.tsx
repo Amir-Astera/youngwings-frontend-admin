@@ -21,7 +21,6 @@ interface AdminLayoutProps {
   children: ReactNode;
   currentPage: string;
   onPageChange: (page: string) => void;
-  onExit?: () => void;
   theme: Theme;
   onThemeChange: (theme: Theme) => void;
 }
@@ -39,7 +38,6 @@ export function AdminLayout({
   children,
   currentPage,
   onPageChange,
-  onExit,
   theme,
   onThemeChange,
 }: AdminLayoutProps) {
@@ -48,14 +46,6 @@ export function AdminLayout({
   const handleLogout = () => {
     authApi.logout();
     window.location.reload();
-  };
-
-  const handleExitAdmin = () => {
-    if (onExit) {
-      onExit();
-    } else {
-      window.dispatchEvent(new CustomEvent('navigateAdmin', { detail: { isAdmin: false } }));
-    }
   };
 
   return (
@@ -80,14 +70,6 @@ export function AdminLayout({
           
           <div className="flex items-center gap-3">
             <ThemeToggle theme={theme} onThemeChange={onThemeChange} />
-            <Button
-              variant="ghost"
-              onClick={handleExitAdmin}
-              aria-label="Вернуться в приложение"
-              className="text-sm px-3"
-            >
-              Вернуться
-            </Button>
             <Button variant="ghost" onClick={handleLogout} className="gap-2">
               <LogOut className="w-4 h-4" />
               <span className="hidden sm:inline">Выйти</span>
