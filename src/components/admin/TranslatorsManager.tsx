@@ -35,6 +35,7 @@ const emptyForm: TranslatorRequest = {
   specialization: "",
   experience: "",
   location: "",
+  photoUrl: "",
   qrUrl: "",
   nickname: "",
 };
@@ -81,8 +82,14 @@ export function TranslatorsManager() {
   const [filters, setFilters] = useState(() => ({ ...initialFilters }));
   const [pagination, setPagination] = useState({ page: 1, size: 20, total: 0 });
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [isUploadingQr, setIsUploadingQr] = useState(false);
   const photoInputRef = useRef<HTMLInputElement | null>(null);
+  const qrInputRef = useRef<HTMLInputElement | null>(null);
+  const [areFiltersVisible, setAreFiltersVisible] = useState(false);
   const photoPreviewUrl =
+    resolveFileUrl(formData.photoUrl?.trim() || undefined) ??
+    (formData.photoUrl?.trim() ?? "");
+  const qrPreviewUrl =
     resolveFileUrl(formData.qrUrl?.trim() || undefined) ?? (formData.qrUrl?.trim() ?? "");
 
   useEffect(() => {
@@ -118,8 +125,8 @@ export function TranslatorsManager() {
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
 
-    if (isUploadingPhoto) {
-      toast.error("Дождитесь завершения загрузки фото");
+    if (isUploadingPhoto || isUploadingQr) {
+      toast.error("Дождитесь завершения загрузки файлов");
       return;
     }
 
@@ -129,6 +136,7 @@ export function TranslatorsManager() {
       specialization: formData.specialization.trim(),
       experience: formData.experience.trim(),
       location: formData.location.trim(),
+      photoUrl: formData.photoUrl.trim(),
       qrUrl: formData.qrUrl.trim(),
       nickname: formData.nickname.trim(),
     };
@@ -139,7 +147,8 @@ export function TranslatorsManager() {
       specialization: "Специализация",
       experience: "Опыт",
       location: "Локация",
-      qrUrl: "Фото",
+      photoUrl: "Фото",
+      qrUrl: "QR-код",
       nickname: "Ватсап номер",
     };
 
@@ -177,6 +186,7 @@ export function TranslatorsManager() {
       specialization: translator.specialization,
       experience: translator.experience,
       location: translator.location,
+      photoUrl: translator.photoUrl,
       qrUrl: translator.qrUrl,
       nickname: translator.nickname,
     });
@@ -199,6 +209,9 @@ export function TranslatorsManager() {
     setEditingTranslator(null);
     if (photoInputRef.current) {
       photoInputRef.current.value = "";
+    }
+    if (qrInputRef.current) {
+      qrInputRef.current.value = "";
     }
   };
 
@@ -223,13 +236,37 @@ export function TranslatorsManager() {
       const uploadResult = await api.uploadFile("ASSETS", file);
       const uploadedUrl = resolveFileUrl(uploadResult.url) ?? uploadResult.url ?? "";
 
-      setFormData((prev) => ({ ...prev, qrUrl: uploadedUrl }));
+      setFormData((prev) => ({ ...prev, photoUrl: uploadedUrl }));
       toast.success("Фото загружено");
     } catch (error) {
       console.error(error);
       toast.error(error instanceof Error ? error.message : "Ошибка загрузки фото");
     } finally {
       setIsUploadingPhoto(false);
+      if (fileEvent.target) {
+        fileEvent.target.value = "";
+      }
+    }
+  };
+
+  const handleQrUpload = async (fileEvent: ChangeEvent<HTMLInputElement>) => {
+    const file = fileEvent.target.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    try {
+      setIsUploadingQr(true);
+      const uploadResult = await api.uploadFile("ASSETS", file);
+      const uploadedUrl = resolveFileUrl(uploadResult.url) ?? uploadResult.url ?? "";
+
+      setFormData((prev) => ({ ...prev, qrUrl: uploadedUrl }));
+      toast.success("QR загружен");
+    } catch (error) {
+      console.error(error);
+      toast.error(error instanceof Error ? error.message : "Ошибка загрузки QR");
+    } finally {
+      setIsUploadingQr(false);
       if (fileEvent.target) {
         fileEvent.target.value = "";
       }
@@ -247,73 +284,84 @@ export function TranslatorsManager() {
             Всего вакансий переводчиков: {pagination.total}
           </p>
         </div>
-        <Button
-          className="bg-blue-600 hover:bg-blue-700"
-          onClick={() => {
-            resetForm();
-            setShowDialog(true);
-          }}
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Добавить переводчика
-        </Button>
+        <div className="flex flex-wrap gap-2 justify-end">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setAreFiltersVisible((prev) => !prev)}
+          >
+            {areFiltersVisible ? "Скрыть фильтры" : "Показать фильтры"}
+          </Button>
+          <Button
+            className="bg-blue-600 hover:bg-blue-700"
+            onClick={() => {
+              resetForm();
+              setShowDialog(true);
+            }}
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Добавить переводчика
+          </Button>
+        </div>
       </div>
 
-      <form
-        onSubmit={handleFilterSubmit}
-        className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm grid gap-4 md:grid-cols-4"
-      >
-        <div className="space-y-2">
-          <Label htmlFor="filter-q">Поиск</Label>
-          <Input
-            id="filter-q"
-            value={filters.q}
-            onChange={(event) => setFilters((prev) => ({ ...prev, q: event.target.value }))}
-            placeholder="ФИО, языки, специализация"
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="filter-languages">Языки</Label>
-          <Input
-            id="filter-languages"
-            value={filters.languages}
-            onChange={(event) =>
-              setFilters((prev) => ({ ...prev, languages: event.target.value }))
-            }
-            placeholder="Например: EN,RU"
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="filter-specializations">Специализации</Label>
-          <Input
-            id="filter-specializations"
-            value={filters.specializations}
-            onChange={(event) =>
-              setFilters((prev) => ({ ...prev, specializations: event.target.value }))
-            }
-            placeholder="Технический,Синхронный"
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="filter-experience">Опыт</Label>
-          <Input
-            id="filter-experience"
-            value={filters.experience}
-            onChange={(event) =>
-              setFilters((prev) => ({ ...prev, experience: event.target.value }))
-            }
-            placeholder="Например: 5 лет"
-          />
-        </div>
-        <div className="flex items-end gap-2 md:col-span-4">
-          <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
-            Применить фильтры
-          </Button>
-          <Button type="button" variant="outline" onClick={handleResetFilters}>
-            Сбросить
-          </Button>
-        </div>
-      </form>
+      {areFiltersVisible && (
+        <form
+          onSubmit={handleFilterSubmit}
+          className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm grid gap-4 md:grid-cols-4"
+        >
+          <div className="space-y-2">
+            <Label htmlFor="filter-q">Поиск</Label>
+            <Input
+              id="filter-q"
+              value={filters.q}
+              onChange={(event) => setFilters((prev) => ({ ...prev, q: event.target.value }))}
+              placeholder="ФИО, языки, специализация"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="filter-languages">Языки</Label>
+            <Input
+              id="filter-languages"
+              value={filters.languages}
+              onChange={(event) =>
+                setFilters((prev) => ({ ...prev, languages: event.target.value }))
+              }
+              placeholder="Например: EN,RU"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="filter-specializations">Специализации</Label>
+            <Input
+              id="filter-specializations"
+              value={filters.specializations}
+              onChange={(event) =>
+                setFilters((prev) => ({ ...prev, specializations: event.target.value }))
+              }
+              placeholder="Технический,Синхронный"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="filter-experience">Опыт</Label>
+            <Input
+              id="filter-experience"
+              value={filters.experience}
+              onChange={(event) =>
+                setFilters((prev) => ({ ...prev, experience: event.target.value }))
+              }
+              placeholder="Например: 5 лет"
+            />
+          </div>
+          <div className="flex items-end gap-2 md:col-span-4">
+            <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
+              Применить фильтры
+            </Button>
+            <Button type="button" variant="outline" onClick={handleResetFilters}>
+              Сбросить
+            </Button>
+          </div>
+        </form>
+      )}
 
       <div className="space-y-4">
         {isLoading ? (
@@ -324,7 +372,8 @@ export function TranslatorsManager() {
           translators.map((translator) => {
             const languages = splitValues(translator.languages);
             const specializations = splitValues(translator.specialization);
-            const photoUrl = resolveFileUrl(translator.qrUrl) ?? translator.qrUrl;
+            const photoUrl = resolveFileUrl(translator.photoUrl) ?? translator.photoUrl;
+            const qrUrl = resolveFileUrl(translator.qrUrl) ?? translator.qrUrl;
 
             return (
               <div
@@ -402,6 +451,19 @@ export function TranslatorsManager() {
                       className="text-sm text-blue-600 hover:underline"
                     >
                       Открыть фото
+                    </a>
+                  </div>
+                )}
+
+                {qrUrl && (
+                  <div>
+                    <a
+                      href={qrUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-blue-600 hover:underline"
+                    >
+                      Открыть QR
                     </a>
                   </div>
                 )}
@@ -517,47 +579,93 @@ export function TranslatorsManager() {
               </div>
             </div>
 
-            <div>
-              <Label>Фото *</Label>
-              <div className="mt-2 flex flex-col gap-3">
-                <div className="flex items-center gap-3">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => photoInputRef.current?.click()}
-                    disabled={isUploadingPhoto}
-                  >
-                    {isUploadingPhoto
-                      ? "Загрузка..."
-                      : photoPreviewUrl
-                        ? "Заменить фото"
-                        : "Загрузить фото"}
-                  </Button>
-                  {photoPreviewUrl && (
-                    <a
-                      href={photoPreviewUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm text-blue-600 hover:underline"
+            <div className="grid md:grid-cols-2 gap-4">
+              <div>
+                <Label>Фото *</Label>
+                <div className="mt-2 flex flex-col gap-3">
+                  <div className="flex items-center gap-3">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => photoInputRef.current?.click()}
+                      disabled={isUploadingPhoto}
                     >
-                      Открыть в новой вкладке
-                    </a>
+                      {isUploadingPhoto
+                        ? "Загрузка..."
+                        : photoPreviewUrl
+                          ? "Заменить фото"
+                          : "Загрузить фото"}
+                    </Button>
+                    {photoPreviewUrl && (
+                      <a
+                        href={photoPreviewUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-blue-600 hover:underline"
+                      >
+                        Открыть в новой вкладке
+                      </a>
+                    )}
+                  </div>
+                  <input
+                    ref={photoInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handlePhotoUpload}
+                  />
+                  {photoPreviewUrl && (
+                    <img
+                      src={photoPreviewUrl}
+                      alt="Фото переводчика"
+                      className="w-32 h-32 object-cover rounded-lg border border-gray-200"
+                    />
                   )}
                 </div>
-                <input
-                  ref={photoInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handlePhotoUpload}
-                />
-                {photoPreviewUrl && (
-                  <img
-                    src={photoPreviewUrl}
-                    alt="Фото переводчика"
-                    className="w-32 h-32 object-cover rounded-lg border border-gray-200"
+              </div>
+
+              <div>
+                <Label>QR-код *</Label>
+                <div className="mt-2 flex flex-col gap-3">
+                  <div className="flex items-center gap-3">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => qrInputRef.current?.click()}
+                      disabled={isUploadingQr}
+                    >
+                      {isUploadingQr
+                        ? "Загрузка..."
+                        : qrPreviewUrl
+                          ? "Заменить QR"
+                          : "Загрузить QR"}
+                    </Button>
+                    {qrPreviewUrl && (
+                      <a
+                        href={qrPreviewUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-blue-600 hover:underline"
+                      >
+                        Открыть в новой вкладке
+                      </a>
+                    )}
+                  </div>
+                  <input
+                    ref={qrInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleQrUpload}
                   />
-                )}
+                  {qrPreviewUrl && (
+                    <img
+                      src={qrPreviewUrl}
+                      alt="QR переводчика"
+                      className="w-32 h-32 object-cover rounded-lg border border-gray-200"
+                    />
+                  )}
+                </div>
               </div>
             </div>
 

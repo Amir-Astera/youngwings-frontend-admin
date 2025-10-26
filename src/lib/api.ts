@@ -687,6 +687,7 @@ interface ApiTranslatorVacancy {
   specialization: string;
   experience: string;
   location: string;
+  photoUrl: string;
   qrUrl: string;
   nickname: string;
   version: number;
@@ -695,6 +696,7 @@ interface ApiTranslatorVacancy {
 }
 
 const mapApiTranslatorToTranslator = (translator: ApiTranslatorVacancy): Translator => {
+  const normalizedPhotoUrl = resolveFileUrl(translator.photoUrl) ?? translator.photoUrl ?? '';
   const normalizedQrUrl = resolveFileUrl(translator.qrUrl) ?? translator.qrUrl ?? '';
 
   return {
@@ -704,6 +706,7 @@ const mapApiTranslatorToTranslator = (translator: ApiTranslatorVacancy): Transla
     specialization: translator.specialization ?? '',
     experience: translator.experience ?? '',
     location: translator.location ?? '',
+    photoUrl: normalizedPhotoUrl,
     qrUrl: normalizedQrUrl,
     nickname: translator.nickname ?? '',
     version: translator.version ?? 0,
@@ -923,6 +926,7 @@ export const translatorsApi = {
       specialization: translator.specialization.trim(),
       experience: translator.experience.trim(),
       location: translator.location.trim(),
+      photoUrl: translator.photoUrl.trim(),
       qrUrl: translator.qrUrl.trim(),
       nickname: translator.nickname.trim(),
     };
@@ -938,6 +942,7 @@ export const translatorsApi = {
       specialization: translator.specialization.trim(),
       experience: translator.experience.trim(),
       location: translator.location.trim(),
+      photoUrl: translator.photoUrl.trim(),
       qrUrl: translator.qrUrl.trim(),
       nickname: translator.nickname.trim(),
     };
@@ -1242,6 +1247,7 @@ export interface Translator {
   specialization: string;
   experience: string;
   location: string;
+  photoUrl: string;
   qrUrl: string;
   nickname: string;
   version: number;
@@ -1255,6 +1261,7 @@ export interface TranslatorRequest {
   specialization: string;
   experience: string;
   location: string;
+  photoUrl: string;
   qrUrl: string;
   nickname: string;
 }
