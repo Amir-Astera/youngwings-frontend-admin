@@ -131,7 +131,7 @@ export function RightSidebar({ onPageChange, currentPage, filterContent }: Right
             <button
               key={index}
               onClick={() => onPageChange(`topic-${topic.name}`)}
-              className="w-full flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg transition-colors text-left"
+              className="w-full flex items-center justify-between p-2 rounded-lg text-left transition-all duration-150 hover:bg-gray-50 hover:translate-y-[1px] hover:shadow-inner active:translate-y-[2px]"
             >
               <span className="text-sm text-gray-700">{topic.name}</span>
               <span className="text-xs text-muted-foreground bg-gray-100 px-2 py-0.5 rounded-full">
