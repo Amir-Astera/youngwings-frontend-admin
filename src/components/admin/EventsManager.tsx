@@ -204,11 +204,14 @@ export function EventsManager() {
       return trimmed.length > 0 ? trimmed : undefined;
     };
 
+    const normalizedEventDate = trimValue(formData.eventDate);
+    const normalizedEventEndDate = trimValue(formData.eventEndDate) || normalizedEventDate;
+
     const normalized: Partial<Event> = {
       title: trimValue(formData.title),
       description: trimValue(formData.description),
-      eventDate: trimValue(formData.eventDate),
-      eventEndDate: trimValue(formData.eventEndDate),
+      eventDate: normalizedEventDate,
+      eventEndDate: normalizedEventEndDate,
       eventTime: "00:00",
       location: trimValue(formData.location),
       format: trimValue(formData.format),
