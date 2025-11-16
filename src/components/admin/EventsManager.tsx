@@ -41,6 +41,7 @@ export function EventsManager() {
     title: "",
     description: "",
     eventDate: "",
+    eventEndDate: "",
     eventTime: "00:00",
     location: "",
     format: "ONLINE",
@@ -151,6 +152,45 @@ export function EventsManager() {
     }));
   };
 
+  const handleEventStartDateChange = (value: string) => {
+    const trimmed = value.trim();
+    setFormData((prev) => {
+      if (!trimmed) {
+        return {
+          ...prev,
+          eventDate: "",
+          eventEndDate: "",
+        };
+      }
+
+      const currentEnd = prev.eventEndDate?.trim() ?? "";
+      const normalizedEnd = !currentEnd || currentEnd < trimmed ? trimmed : currentEnd;
+
+      return {
+        ...prev,
+        eventDate: trimmed,
+        eventEndDate: normalizedEnd,
+      };
+    });
+  };
+
+  const handleEventEndDateChange = (value: string) => {
+    const trimmed = value.trim();
+    setFormData((prev) => {
+      if (!trimmed) {
+        return { ...prev, eventEndDate: "" };
+      }
+
+      const start = prev.eventDate?.trim() ?? "";
+      const normalizedEnd = start && trimmed < start ? start : trimmed;
+
+      return {
+        ...prev,
+        eventEndDate: normalizedEnd,
+      };
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isUploadingCover) {
@@ -168,6 +208,7 @@ export function EventsManager() {
       title: trimValue(formData.title),
       description: trimValue(formData.description),
       eventDate: trimValue(formData.eventDate),
+      eventEndDate: trimValue(formData.eventEndDate),
       eventTime: "00:00",
       location: trimValue(formData.location),
       format: trimValue(formData.format),
@@ -181,6 +222,7 @@ export function EventsManager() {
       "title",
       "description",
       "eventDate",
+      "eventEndDate",
       "region",
       "location",
       "format",
@@ -191,6 +233,7 @@ export function EventsManager() {
       title: "Заголовок",
       description: "Описание",
       eventDate: "Дата проведения",
+      eventEndDate: "Дата окончания",
       location: "Город",
       format: "Формат",
       region: "Регион",
@@ -230,6 +273,7 @@ export function EventsManager() {
       title: event.title,
       description: event.description,
       eventDate: event.eventDate,
+      eventEndDate: event.eventEndDate,
       eventTime: event.eventTime || "00:00",
       location: event.location,
       format: event.format,
@@ -258,6 +302,7 @@ export function EventsManager() {
       title: "",
       description: "",
       eventDate: "",
+      eventEndDate: "",
       eventTime: "00:00",
       location: "",
       format: "ONLINE",
@@ -324,6 +369,11 @@ export function EventsManager() {
         ) : (
           events.map((event) => {
             const coverSrc = resolveFileUrl(event.coverUrl ?? undefined) ?? event.coverUrl ?? undefined;
+            const hasDateRange =
+              Boolean(event.eventEndDate) && event.eventEndDate !== event.eventDate;
+            const dateLabel = hasDateRange
+              ? `${event.eventDate} — ${event.eventEndDate}`
+              : event.eventDate;
 
             return (
               <div
@@ -344,7 +394,7 @@ export function EventsManager() {
                       {event.description}
                     </p>
                     <div className="flex items-center gap-4 text-sm text-gray-500 mb-3">
-                      <span>{event.eventDate}</span>
+                      <span>{dateLabel}</span>
                       {event.eventTime && (
                         <>
                           <span>·</span>
@@ -415,15 +465,28 @@ export function EventsManager() {
               />
             </div>
 
-            <div>
-              <Label htmlFor="date">Дата *</Label>
-              <Input
-                id="date"
-                type="date"
-                value={formData.eventDate}
-                onChange={(e) => setFormData({ ...formData, eventDate: e.target.value })}
-                required
-              />
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="dateStart">Дата начала *</Label>
+                <Input
+                  id="dateStart"
+                  type="date"
+                  value={formData.eventDate ?? ""}
+                  onChange={(e) => handleEventStartDateChange(e.target.value)}
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="dateEnd">Дата окончания *</Label>
+                <Input
+                  id="dateEnd"
+                  type="date"
+                  value={formData.eventEndDate ?? ""}
+                  min={formData.eventDate || undefined}
+                  onChange={(e) => handleEventEndDateChange(e.target.value)}
+                  required
+                />
+              </div>
             </div>
 
             <div className="grid sm:grid-cols-2 gap-4">

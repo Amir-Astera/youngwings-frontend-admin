@@ -35,7 +35,7 @@ export const API_ENDPOINTS = {
   POSTS: {
     LIST: '/api/post/getAll',                      // GET - список постов
     CREATE: '/api/post',                           // POST - создать пост
-    GET: (id: string) => `/api/post/share/${id}`,  // GET - получить пост по публичной ссылке
+    GET: (id: string) => `/api/post/${id}`,        // GET - получить пост по ID
     UPDATE: (id: string) => `/api/post/edit/${id}`, // PUT - обновить пост
     DELETE: (id: string) => `/api/post/${id}`,     // DELETE - удалить пост
   },
