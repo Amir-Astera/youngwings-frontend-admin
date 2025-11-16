@@ -379,6 +379,7 @@ const DEFAULT_MOCK_EVENTS: Event[] = [
     description:
       'Двухдневная выставка проектов молодых ученых и инженеров с мастер-классами и нетворкингом.',
     eventDate: '2024-08-15',
+    eventEndDate: '2024-08-16',
     eventTime: '10:00',
     location: 'Алматы',
     format: 'OFFLINE',
@@ -396,6 +397,7 @@ const DEFAULT_MOCK_EVENTS: Event[] = [
     description:
       'Серия онлайн-дискуссий о лучших практиках социального предпринимательства и поддержке молодёжных инициатив.',
     eventDate: '2024-09-05',
+    eventEndDate: '2024-09-05',
     eventTime: '14:00',
     location: 'Ташкент',
     format: 'ONLINE',
@@ -668,6 +670,7 @@ const mapApiEventToEvent = (event: any): Event => {
     title: event.title,
     description: event.description ?? '',
     eventDate: event.eventDate ?? event.date ?? '',
+    eventEndDate: event.eventEndDate ?? event.dateEnd ?? event.eventDate ?? event.date ?? '',
     eventTime: event.eventTime ?? event.time ?? '',
     location: event.location ?? '',
     format: event.format ?? '',
@@ -727,6 +730,7 @@ const buildEventRequestPayload = (event: Partial<Event>) => ({
   title: trimValue(event.title),
   description: trimValue(event.description),
   eventDate: trimValue(event.eventDate),
+  eventEndDate: trimValue(event.eventEndDate),
   eventTime: trimValue(event.eventTime),
   location: trimValue(event.location),
   format: trimValue(event.format),
@@ -761,6 +765,7 @@ const fallbackEventsApi = {
       title: event.title ?? 'Новое событие',
       description: event.description ?? '',
       eventDate: event.eventDate ?? new Date().toISOString().slice(0, 10),
+      eventEndDate: event.eventEndDate ?? event.eventDate ?? new Date().toISOString().slice(0, 10),
       eventTime: event.eventTime ?? '09:00',
       location: event.location ?? '',
       format: event.format ?? 'ONLINE',
@@ -1229,6 +1234,7 @@ export interface Event {
   title: string;
   description: string;
   eventDate: string; // ISO 8601 date string
+  eventEndDate: string; // ISO 8601 date string
   eventTime: string;
   location: string;
   format: string;
