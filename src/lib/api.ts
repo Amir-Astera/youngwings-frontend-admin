@@ -280,15 +280,25 @@ interface ApiPaginatedResponse<T> {
   items: T[];
 }
 
+const normalizeApiPostId = (id: string | number | undefined | null): string => {
+  if (typeof id !== 'string') {
+    return typeof id === 'number' ? String(id) : '';
+  }
+
+  return id.trim().replace(/^share\//i, '');
+};
+
 const mapApiPostToPost = (post: ApiPost): Post => {
   const rawThumbnail = typeof post.thumbnail === 'string' ? post.thumbnail.trim() : '';
   const normalizedThumbnail = resolveFileUrl(rawThumbnail);
 
   const thumbnailValue = normalizedThumbnail ?? (rawThumbnail || null);
   const imageUrl = normalizedThumbnail ?? (rawThumbnail || undefined);
+  const normalizedId = normalizeApiPostId(post.id);
 
   return {
     ...post,
+    id: normalizedId || post.id,
     thumbnail: thumbnailValue,
     excerpt: post.description ?? '',
     imageUrl,
@@ -726,19 +736,24 @@ const normalizeOptionalField = (value: unknown): string | null => {
   return trimmed.length > 0 ? trimmed : null;
 };
 
-const buildEventRequestPayload = (event: Partial<Event>) => ({
-  title: trimValue(event.title),
-  description: trimValue(event.description),
-  eventDate: trimValue(event.eventDate),
-  eventEndDate: trimValue(event.eventEndDate),
-  eventTime: trimValue(event.eventTime),
-  location: trimValue(event.location),
-  format: trimValue(event.format),
-  region: trimValue(event.region),
-  sphere: trimValue(event.sphere),
-  coverUrl: normalizeOptionalField(event.coverUrl),
-  registrationUrl: normalizeOptionalField(event.registrationUrl),
-});
+const buildEventRequestPayload = (event: Partial<Event>) => {
+  const eventDate = trimValue(event.eventDate);
+  const eventEndDate = trimValue(event.eventEndDate) || eventDate;
+
+  return {
+    title: trimValue(event.title),
+    description: trimValue(event.description),
+    eventDate,
+    eventEndDate,
+    eventTime: trimValue(event.eventTime),
+    location: trimValue(event.location),
+    format: trimValue(event.format),
+    region: trimValue(event.region),
+    sphere: trimValue(event.sphere),
+    coverUrl: normalizeOptionalField(event.coverUrl),
+    registrationUrl: normalizeOptionalField(event.registrationUrl),
+  };
+};
 
 const fallbackEventsApi = {
   getAll: async (): Promise<PaginatedResult<Event>> => {

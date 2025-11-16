@@ -262,6 +262,7 @@ No content
   "title": "AI Summit 2025",
   "description": "Главная конференция по ИИ в ЦА.",
   "eventDate": "2025-11-12",
+  "eventEndDate": "2025-11-14",
   "eventTime": "10:00",
   "location": "Алматы, Дворец Республики",
   "format": "HYBRID",
@@ -279,6 +280,7 @@ No content
   "title": "AI Summit 2025",
   "description": "Главная конференция по ИИ в ЦА.",
   "eventDate": "2025-11-12",
+  "eventEndDate": "2025-11-14",
   "eventTime": "10:00",
   "location": "Алматы, Дворец Республики",
   "format": "HYBRID",
@@ -307,6 +309,7 @@ No content
   "title": "AI Summit 2025",
   "description": "Главная конференция по ИИ в ЦА.",
   "eventDate": "2025-11-12",
+  "eventEndDate": "2025-11-14",
   "eventTime": "10:00",
   "location": "Алматы, Дворец Республики",
   "format": "HYBRID",
@@ -338,6 +341,7 @@ No content
       "title": "AI Summit 2025",
       "description": "Главная конференция по ИИ в ЦА.",
       "eventDate": "2025-11-12",
+      "eventEndDate": "2025-11-14",
       "eventTime": "10:00",
       "location": "Алматы, Дворец Республики",
       "format": "HYBRID",
@@ -511,6 +515,7 @@ interface Event {
   title: string;
   description: string;
   eventDate: string;        // Формат: YYYY-MM-DD
+  eventEndDate: string;     // Формат: YYYY-MM-DD
   eventTime: string;        // Формат: HH:MM
   location: string;
   format: 'ONLINE' | 'OFFLINE' | 'HYBRID';
