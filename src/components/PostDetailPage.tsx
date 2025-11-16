@@ -144,7 +144,7 @@ export function PostDetailPage({ postId }: PostDetailPageProps) {
           </div>
 
           {/* Title */}
-          <h1 className="text-2xl">{post.title}</h1>
+          <h1 className="text-2xl font-bold">{post.title}</h1>
 
           {/* Meta info */}
           <div className="flex items-center gap-4 text-xs text-gray-500">

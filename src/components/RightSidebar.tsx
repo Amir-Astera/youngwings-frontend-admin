@@ -121,7 +121,7 @@ export function RightSidebar({ onPageChange, currentPage, filterContent }: Right
       {filterContent && filterContent}
 
       {/* Popular Topics */}
-      <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
+      <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5">
         <div className="flex items-center gap-2 mb-4">
           <TrendingUp className="w-5 h-5 text-blue-600" />
           <h3 className="text-sm">Популярные темы</h3>
@@ -131,7 +131,7 @@ export function RightSidebar({ onPageChange, currentPage, filterContent }: Right
             <button
               key={index}
               onClick={() => onPageChange(`topic-${topic.name}`)}
-              className="w-full flex items-center justify-between p-2 rounded-lg text-left transition-all duration-150 hover:bg-gray-50 hover:translate-y-[1px] hover:shadow-inner active:translate-y-[2px]"
+              className="w-full flex items-center justify-between p-2 rounded-lg text-left transition-all duration-200 hover:bg-blue-50/80 hover:text-blue-700 hover:shadow-sm focus-visible:ring-2 focus-visible:ring-blue-200"
             >
               <span className="text-sm text-gray-700">{topic.name}</span>
               <span className="text-xs text-muted-foreground bg-gray-100 px-2 py-0.5 rounded-full">
